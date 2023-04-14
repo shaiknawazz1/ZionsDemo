@@ -1,0 +1,55 @@
+//this is a sample file for Talend to PySpark conversion
+{
+	"script_extension" : "py",
+	"pre_node_line" : "# Processing node %NODE_NAME%, type %NODE_TYPE%\n# COLUMN COUNT: %COLUMN_COUNT%\n# %ADDITIONAL_COMMENT%", //# COLUMNS %COLUMN_LIST%
+	"commands" : {
+		"READER_FILE_DELIMITED": "spark.read.format('csv').option('header','%HEADER%').load('%PATH%')",
+		"READER_RELATIONAL": "spark.read.jdbc('SOME_SOURCE', \"\"\"%TABLE_NAME%\"\"\", properties={'user': %LOGIN%, 'password': %PASSWORD%, 'driver': %DRIVER%})",
+		"READER_SALEFORCE": "spark.read.salesforce(%CONNECT_STRING%, \"\"\"%TABLE_NAME%\"\"\", properties={'user': %LOGIN%, 'password': %PASSWORD%, 'driver': %DRIVER%})",
+		"WRITER_FILE_DELIMITED": "%DF%.write.format('csv').option('header','%HEADER%').mode('overwrite').option('sep','%DELIMITER%').csv('%PATH%')",
+		"WRITER_RELATIONAL": "%DF%.write.mode('append').jdbc(\"%CONNECT_STRING%\", \"\"\"%TABLE_NAME%\"\"\", properties={'user': %LOGIN%, 'password': %PASSWORD%, 'driver': %DRIVER%})",
+		"WRITER_SALEFORCE": "SomeArray.Append(%DF%)"
+	},
+	"system_type_class" : {
+		"MySQL" : "RELATIONAL",
+		"HIVE" : "RELATIONAL",
+		"TERADATA" : "RELATIONAL",
+		"REDSHIFT" : "RELATIONAL",
+		"Salesforce" : "SALEFORCE",
+		"TOOLKIT" : "RELATIONAL",
+		"DEFAULT" : "FILE_DELIMITED"
+	},
+	"multiline_stmt_break" : " \ ",
+	"skip_rowid_generation" : "1",
+	
+	"header": "#Code converted on %CONVERTER_TIMESTAMP%\nimport os\nfrom pyspark.sql import *\nfrom pyspark.sql.functions import *\nfrom pyspark import SparkContext;\nfrom pyspark.sql.session import SparkSession\nsc = SparkContext('local')\nspark = SparkSession(sc)",
+	"footer": "quit()",
+
+	"default_indent" : {
+		"header" : "",
+		"body" : "\t\t",
+		"footer" : ""
+	},
+	
+	"body_wrap" : {
+		"before" : "\ntry:\n\n",
+		"after" : "\n\nexcept OSError:\n\tprint('Error Occurred')\n"
+	},
+
+	// expression syntax handling using BB's standard parser
+	
+	"line_subst" : [
+		{"from" : "\bnull\b", "to" : "None"},
+		{"from" : "\.equals\s*\(\"(.*?)\"\s*\)", "to" : " == \"$1\""},
+		{"from" : "\.equals\s*\(lit\(\"(.*)\"\s*\)\)", "to" : " == lit(\"$1\")"},
+		{"from" : "context.(\w+)\b", "to" : "os.environ['$1']"}
+	],
+	
+	"function_subst" : [
+		{"from" : "StringHandling.TRIM", "to" : "trim"},
+		{"from" : "routines.DateConversion.julianToGregorian", "output_template" : "datetime.datetime.strptime($1, '%y%j').date().strftime('%Y-%m-%d')"},
+		{"from" : "CurrentDate", "to" : "current_date"},
+		{"from" : "DaysSinceFromDate", "output_template" : "datediff($1,$2)"}
+	]
+
+}

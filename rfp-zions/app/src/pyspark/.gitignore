@@ -1,0 +1,6 @@
+# Local demo virtual env directories
+
+/demo/*
+
+# Ignore CLI configuration files
+

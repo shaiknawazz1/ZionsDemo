@@ -1,0 +1,19 @@
+version: '3.5'
+services:
+  zions-demo:
+    container_name: zions-ds2pySpark
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile-py
+    tty: true 
+    ports:
+      - '5000:5000'
+    networks:
+      - local
+    #environment:  
+    #  - FLASK_APP=app.py
+    
+networks:
+  local:
+    driver: bridge
