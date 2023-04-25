@@ -12,8 +12,8 @@ import pandas as pd
 import xlrd as xl
 import requests as rq
 
-import pyspark
-from pyspark.sql import SparkSession
+# import pyspark
+# from pyspark.sql import SparkSession
 
 
 app = Flask(__name__)
@@ -21,8 +21,9 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 api = Api(app, version="1.0", title="API to get Zions RFP data stage migration", description="API to get data stage migration",)
 
 
-ns = api.namespace("Zions-RFP", description="general APIs like service health and availability")
+ns = api.namespace("Zions-rfp", description="general APIs like service health and availability")
 nsqa = api.namespace("qautils", description="Testing utility APIs")
+nsschdlr = nsqa = api.namespace("Scheduling-Utilities", description="Scheduling utility APIs")
 
 
 parser = api.parser()
@@ -34,7 +35,6 @@ parser = api.parser()
 #)
 
 @ns.route("/health")
-@api.representation('application/json')
 class Health(Resource):
     """TODO"""
     @api.doc(parser=parser)
@@ -43,15 +43,15 @@ class Health(Resource):
         #TODO check dependent service health and availbility
         return json.dumps({"status": "ok"}), 200
 
-@ns.route("/pySparkHealth")
-class PySparkHealth(Resource):
-    """TODO"""
-    @api.doc(parser=parser)
-    def get(self):
-        """get the health of the service"""
-        #TODO check dependent service health and availbility
-        df = testPySPark()
-        return df.to_json(), 200
+# @ns.route("/pySparkHealth")
+# class PySparkHealth(Resource):
+#     """TODO"""
+#     @api.doc(parser=parser)
+#     def get(self):
+#         """get the health of the service"""
+#         #TODO check dependent service health and availbility
+#         df = testPySPark()
+#         return df.to_json(), 200
     
     # @api.doc(parser=parser)
     # def post(self):
@@ -63,34 +63,34 @@ class PySparkHealth(Resource):
 #generate unit tests for pySpark code
 
 #test pySpark
-def testPySPark():
+# def testPySPark():
 
-    spark = SparkSession.builder \
-        .master("local[*]") \
-        .appName('tepst') \
-        .getOrCreate()
+#     spark = SparkSession.builder \
+#         .master("local[*]") \
+#         .appName('tepst') \
+#         .getOrCreate()
 
-    df = spark.read \
-        .option("header", "true") \
-        .csv('sampleInput.csv')
+#     df = spark.read \
+#         .option("header", "true") \
+#         .csv('sampleInput.csv')
     
-    return df
+#     return df
 
     #df.show()
 
 #test pySpark
-def validateDSJob():
+# def validateDSJob():
 
-    spark = SparkSession.builder \
-        .master("local[*]") \
-        .appName('tepst') \
-        .getOrCreate()
+#     spark = SparkSession.builder \
+#         .master("local[*]") \
+#         .appName('tepst') \
+#         .getOrCreate()
 
-    df = spark.read \
-        .option("header", "true") \
-        .csv('sampleInput.xlsx')
+#     df = spark.read \
+#         .option("header", "true") \
+#         .csv('sampleInput.xlsx')
     
-    return df
+#     return df
 
 if __name__ == "__main__":
     app.run(port=5000, debug=True)
