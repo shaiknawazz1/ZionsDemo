@@ -58,6 +58,9 @@ class DSValidator(Resource):
 
 def validateDSJob(ds_job):
     #TODO Suriya please add a testing logic here and generate the detailed report
+    # identify the job name
+    mdlName = "pyspark/" + ds_job + ".py"
+    
     return ds_job
 
 if __name__ == "__main__":
