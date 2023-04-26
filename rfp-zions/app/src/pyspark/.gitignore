@@ -1,6 +1,8 @@
 # Local demo virtual env directories
 
 /demo/*
+/__*__
+/*.pyc
 
 # Ignore CLI configuration files
 
