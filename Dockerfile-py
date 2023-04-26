@@ -46,7 +46,7 @@ COPY /rfp-zions/ /rfp-zions/
 WORKDIR /rfp-zions/app
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 5000
+EXPOSE 8080
 WORKDIR /rfp-zions/app/src
 
 CMD ["python", "-m", "flask", "run", "--host=0.0.0.0"]

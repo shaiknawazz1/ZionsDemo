@@ -9,17 +9,6 @@ spark = SparkSession(sc)
 
 try:
 
-	# Processing node DSLink14, type SOURCE
-	# COLUMN COUNT: 4
-	# Original node name Departments_Master, link DSLink14
-
-	DSLink14 = spark.read.jdbc('DATA_SOURCE', f"""select 
-	DEPT_NAME,
-	DEPT_CODE,
-	DEPT_KEY,
-	CREATED_TS
-	from IICS_CONV.DEPT_LOOKUP""")
-
 	# Processing node DSLink2, type SOURCE
 	# COLUMN COUNT: 7
 	# Original node name Get_Employee_Data, link DSLink2
@@ -71,26 +60,16 @@ try:
 	Dim_Party = DSLink4.select('*')
 	Dim_Party.write.mode('append').jdbc("", """DIM_PARTY""", properties={'user': , 'password': , 'driver': })
 
-	# Processing node DSLink13, type AGGREGATOR
+	# Processing node DSLink6, type AGGREGATOR
 	# COLUMN COUNT: 3
-	# Original node name Aggregator_9, link DSLink13
+	# Original node name Aggregator_9, link DSLink6
 
-	DSLink13 = DSLink10.groupBy("dept_name","dept_id").agg(
+	DSLink6 = DSLink10.groupBy("dept_name","dept_id").agg(
 		sum("dummy").alias("CNT")).select(
-			DSLink10.dept_name.alias('dept_name'),
-			DSLink10.dept_id.alias('dept_id'),
-			'CNT'
+			DSLink10.dept_name.alias('DEPT_NAME'),
+			'CNT',
+			DSLink10.dept_id.alias('DEPT_ID')
 		)
-
-	# Processing node DSLink6, type MERGE
-	# COLUMN COUNT: 3
-	# Original node name Dept_Lkp, link DSLink6
-
-	DSLink6 = DSLink13.join(DSLink14, [DSLink14.DEPT_CODE == DSLink13.dept_name], 'inner').select(
-		DSLink14.DEPT_NAME.alias('DEPT_NAME'),
-		DSLink13.CNT.alias('CNT'),
-		DSLink13.dept_id.alias('DEPT_ID')
-	)
 
 	# Processing node dim_Dept, type TARGET
 	# COLUMN COUNT: 3

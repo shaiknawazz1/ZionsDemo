@@ -22,75 +22,43 @@ api = Api(app, version="1.0", title="API to get Zions RFP data stage migration",
 
 
 ns = api.namespace("Zions-rfp", description="general APIs like service health and availability")
-nsqa = api.namespace("qautils", description="Testing utility APIs")
-nsschdlr = nsqa = api.namespace("Scheduling-Utilities", description="Scheduling utility APIs")
+nsqa = api.namespace("qa-Utilities", description="Testing utility APIs")
+nsschdlr = api.namespace("Scheduling-Utilities", description="Scheduling utility APIs")
 
-
+# parserhlth = api.parser()
 parser = api.parser()
+parser.add_argument(
+   "dsName", type=str, required=True, help="Input Data Stage Job Name", location="form"
+)
 # parser.add_argument(
-#    "query", type=str, required=True, help="Input Data Stage Job Name", location="form"
-# )
-#parser.add_argument(
 #    "wf_name", type=str, required=True, help="unique work flow name, if workflow has multiple seesions append with _ss1, _ss2, _ss3 etc.. for each session", location="form"
-#)
+# )
 
 @ns.route("/health")
 class Health(Resource):
     """TODO"""
-    @api.doc(parser=parser)
+    # @api.doc(parser=parserhlth)
     def get(self):
-        """get the health of the service"""
+        """ get the health of the service """
         #TODO check dependent service health and availbility
         return json.dumps({"status": "ok"}), 200
-
-# @ns.route("/pySparkHealth")
-# class PySparkHealth(Resource):
-#     """TODO"""
-#     @api.doc(parser=parser)
-#     def get(self):
-#         """get the health of the service"""
-#         #TODO check dependent service health and availbility
-#         df = testPySPark()
-#         return df.to_json(), 200
     
-    # @api.doc(parser=parser)
-    # def post(self):
-    #     """get the health of the service"""
-    #     #TODO check dependent service health and availbility
-    #     df = testPySPark()
-    #     return df.to_json(), 200
+@nsqa.route("/validate_job")
+class DSValidator(Resource):
+    """TODO"""
 
-#generate unit tests for pySpark code
+    @api.doc(parser=parser)
+    def post(self):
+        """TODO"""
+        args = parser.parse_args()
+        ds_name = args["dsName"]
+        resp = validateDSJob(ds_name)
+        return resp, 201
 
-#test pySpark
-# def testPySPark():
 
-#     spark = SparkSession.builder \
-#         .master("local[*]") \
-#         .appName('tepst') \
-#         .getOrCreate()
-
-#     df = spark.read \
-#         .option("header", "true") \
-#         .csv('sampleInput.csv')
-    
-#     return df
-
-    #df.show()
-
-#test pySpark
-# def validateDSJob():
-
-#     spark = SparkSession.builder \
-#         .master("local[*]") \
-#         .appName('tepst') \
-#         .getOrCreate()
-
-#     df = spark.read \
-#         .option("header", "true") \
-#         .csv('sampleInput.xlsx')
-    
-#     return df
+def validateDSJob(ds_job):
+    #TODO Suriya please add a testing logic here and generate the detailed report
+    return ds_job
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    app.run(port=8080)

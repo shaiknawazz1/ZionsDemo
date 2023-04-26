@@ -24,6 +24,16 @@ try:
 	FROM Employees
 	WHERE Employees.hired_date > '2020-01-01'""")
 
+	# Processing node DSLink6, type TRANSFORMATION
+	# COLUMN COUNT: 3
+	# Original node name Transformer_1, link DSLink6
+
+	DSLink6 = DSLink2.select(
+		(lit(12345)).alias('DEPT_ID'),
+		DSLink2.dept_name.alias('DEPT_NAME'),
+		(lit(10)).alias('CNT')
+	)
+
 	# Processing node DSLink4, type TRANSFORMATION
 	# COLUMN COUNT: 5
 	# Original node name Transformer_1, link DSLink4
@@ -36,11 +46,17 @@ try:
 		(lit('Y')).alias('ACTIVE_IND')
 	).filter("Emp_id > 0")
 
+	# Processing node dim_Dept, type TARGET
+	# COLUMN COUNT: 3
+
+	dim_Dept = DSLink6.select('*')
+	dim_Dept.write.mode('append').jdbc("", """DIM_DEPARTMENTS""", properties={'user': , 'password': , 'driver': })
+
 	# Processing node Dim_Party, type TARGET
 	# COLUMN COUNT: 5
 
 	Dim_Party = DSLink4.select('*')
-	Dim_Party.write.mode('append').jdbc("", """DIM_PARTY""", properties={'user': 'dummy', 'password': 'dummy', 'driver': 'dummy'})	
+	Dim_Party.write.mode('append').jdbc("", """DIM_PARTY""", properties={'user': , 'password': , 'driver': })	
 
 except OSError:
 	print('Error Occurred')
