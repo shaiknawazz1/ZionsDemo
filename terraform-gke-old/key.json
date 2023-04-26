@@ -1,12 +1,12 @@
 {
   "type": "service_account",
-  "project_id": "mit-zions-rfp",
-  "private_key_id": "0d02671b48b18310fa85e7748306f73bd08076ed",
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC/hHT56nsiZPf9\nDG1oPNt4XBZE5ysV1sD+G07o1y10BCCp54mEROAjx3pr2sonbqMZar7KIob8NRyW\n7fHAD2MwRRHavK2L8mgWznqV0w7fQwT0oyamAybLp2hRfV2f7JmxzUvoUsY7xrkd\nBtMxHveaL4wnnIbCrb4bN1MiivSsmYr2JewK+cmJsU5BaifVfKqxO8WPl3beBByu\nA5TqL//IRrgeEx6aZvRip0nfxmQxoQDnA8xQ8BDxtMlIYjYbRZ/Ya1PwuAJtFMuD\nOMGiHVoGSlcW/qfwRh8CuorUrq7By22imOewz1k/nqw8SzVuoFCRF/8Riy6H3Y+Y\np2FzXOCNAgMBAAECggEADde0KxvWi8FKXGJcJmXfA3In05H1ibCkm+lGOOr+oyKo\n6BGZyAiWE81MrQQwIDgCtr5XV8hgQyqlQZ0lYAQCCms0879h+C93Sbi3Cw0UMjEc\n/VVX4IrHRdPjOh/1LFnqBPwz/EY+rkjk4zMgVi3+aF5UmMiwmTHSKmjuC8fekKVb\nRN7yayB412TeJWSwfN9RjWXvk/XKPEsDFG2/T40diZNiCaocuk0cdZ5+hUVRRbK8\nwm86lUbzrIG3YMeqveDIwZvqBkj12Chp468M7SjzulEJisYGpXPpx2K6m4A4k4pK\n1N0gmWoyzWGnoN8NlRuvs+FPyQyFEMYPdiGGGFqQiQKBgQD1UATYIVTezsVh4v5M\noCRb6RlKrMHtut4UtW5EqveF7QdQah49f6XV7DFU5eq8E3A+LB11IrkctrhTskQz\nEV23YbaA8P40jgFoistZJ3n468KgLVnq8cPiQnTOAfL7ccnjOyg5LYM8PUpeJXt2\nDbgDxT8vb5rEe0oPn4MgxaUyZQKBgQDH3HVX12tfB7u1stnOLjeXyZcKMoGKl4yx\nnfhysChe58bOIGMNka1PuqJ/06Kspvlq9WAlFPA6JH3ww/UQTKluUBwpb3Y06HqY\nA3EnWFvN/KlGMmxMbnhoKLBP2rfpyIoSGV4OgWquZmp2XkGf2nkUWUF2SJWFL4f0\nEQeY6nZ/CQKBgC2SiwPX1Vt7EEIqGFIF4htNB4zO4UwXzhAM0IpjNI6lxRkUTb/h\nCd7e/R8ng18jQVPbgDF1nOwPqdiqom7WSBG8TlpP6vm6c9qHBlXutoMe0U5Ofoje\nFyTecbKfvBMoRXg4UjWlFd9IB5vL3M7Gp6vTpfRbCGZ9/PlACe05qoHdAoGAWnmu\nlUlrzeVOUH7aor/BYvFbcr5Sbk8U3gNJSYH9hJkgIof+z1G3R3SRw5Qm/EnKd2UF\nVUQZS/jhGnFbKznJKasSVJ+kv2bOuKo2Oz2AsctDRgflhuQrldt1lXDJ+QdTmcXq\nEl770F+EqnkY9CiOz2toewd4yIYv4YkkC1F4uyECgYBWj4Kwzw6KCPDrLZS9OQoT\nxE3pU4uwImEjfTWrZ0bT7NoqUbMedebX83JF+QD4E/rGAZH0e8mGeU2/bOGCF5ki\nJBbRP0EdHQFvOpvHZnDGZf1TJcv01qDdC5CduGghHDxydoO/QKAcg54pXgTa8zIL\nENVAR+GDkbEiwFAggeUWTw==\n-----END PRIVATE KEY-----\n",
-  "client_email": "mit-gc-sa@mit-zions-rfp.iam.gserviceaccount.com",
-  "client_id": "116955086366655616719",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/mit-gc-sa%40mit-zions-rfp.iam.gserviceaccount.com"
+  "project_id": "",
+  "private_key_id": "",
+  "private_key": "",
+  "client_email": "",
+  "client_id": "",
+  "auth_uri": "",
+  "token_uri": "",
+  "auth_provider_x509_cert_url": "",
+  "client_x509_cert_url": ""
 }
