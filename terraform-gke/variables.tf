@@ -3,16 +3,25 @@ variable "project" {
 }
 
 variable "region" {
-  default = "us-east1"
+  default = "us-central1"
 }
 
 variable "zone" {
-  default = "us-east1"
+  default = "us-central1-a"
 }
 
 variable "cluster" {
-  default = "zions-rfp-workshops"
+  default = "zions-rfp-cluster"
 }
+
+variable "app_name" {
+  default = "zions-demo"
+}
+
+variable "machine_type" {
+  default = "g1-small"
+}
+
 
 variable "credentials" {
   default = "credentials.json"

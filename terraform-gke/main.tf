@@ -1,22 +1,13 @@
 terraform {
   required_version = ">=0.12"
-  backend "remote" {
-    organization = "mit"
-    workspaces {
-      name = "mit_gke_cluster"
-    }
-  }
 }
 
 resource "google_container_cluster" "primary" {
   name               = var.cluster
   location           = var.zone
-  initial_node_count = 3
+  initial_node_count = 2
 
   master_auth {
-    username = ""
-    password = ""
-
     client_certificate_config {
       issue_client_certificate = false
     }
@@ -27,6 +18,7 @@ resource "google_container_cluster" "primary" {
     oauth_scopes = [
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/devstorage.read_only",
     ]
 
     metadata = {

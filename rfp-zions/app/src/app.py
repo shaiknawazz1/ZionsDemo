@@ -11,6 +11,7 @@ import time
 import pandas as pd
 import xlrd as xl
 import requests as rq
+from qautils import csvComparator as csvComp
 
 # import pyspark
 # from pyspark.sql import SparkSession
@@ -59,9 +60,9 @@ class DSValidator(Resource):
 def validateDSJob(ds_job):
     #TODO Suriya please add a testing logic here and generate the detailed report
     # identify the job name
-    mdlName = "pyspark/" + ds_job + ".py"
-    
-    return ds_job
+    #resp = csvComp.initaiteValidation(mdlName)
+    return {"Inprogress": "Soon you will be seeing beatiful things"}
+
 
 if __name__ == "__main__":
-    app.run(port=8080)
+    app.run(port=5000)

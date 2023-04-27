@@ -18,7 +18,7 @@ try:
 
     df2 = df.select("CustomerNumber", "GivenName", "MiddleName", "LastName", "FamilyName", concat_ws(" ", df.GivenName, df.MiddleName, df.LastName)
                     .alias("FullName"), "NameprefixTxt")
-    # df2.show()
+    df2.show()
     csv_file_path = "../../test-data/demo/pySpark_output.csv"
     df2.toPandas().to_csv(csv_file_path)
 
