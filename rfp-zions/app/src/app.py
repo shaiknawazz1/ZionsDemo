@@ -12,7 +12,8 @@ import time
 import pandas as pd
 import xlrd as xl
 import requests as rq
-from qautils import csvComparator as csvComp
+from qautils import CSV_Comparator as csvComp
+from commonUtils import utils 
 
 # import pyspark
 # from pyspark.sql import SparkSession
@@ -51,28 +52,29 @@ class DSValidator(Resource):
 
     @api.doc(parser=parser)
     def post(self):
-        """TODO"""
+        """pass the data stage job name for validation of converted pyspark code"""
         args = parser.parse_args()
         ds_name = args["dsName"]
         resp = validateDSJob(ds_name)
-        return send_file(resp, attachment_filename='Validations-Reports.zip', as_attachment=True)
+        #return send_file(resp, attachment_filename='Validations-Reports.zip', as_attachment=True)
+        return send_from_directory(utils.get_input_folder(ds_name), filename= ds_name + "-csv-report.csv", as_attachment=True)
+        #return resp, 201
+
+@nsqa.route("/listOfDSJobs")
+class DSJobsList(Resource):
+    """List of data stage jobs available for validation"""
+    def get(self):
+        """TODO"""
+        resp = utils.getJobsList()
+        jsonResp = {"listOfJobs" : resp}
+        return jsonResp, 200
         #return resp, 201
 
 
 def validateDSJob(ds_job):
-    #TODO Suriya please add a testing logic here and generate the detailed report
-    # identify the job name
-    #resp = csvComp.initaiteValidation(mdlName)
-    # path = os.getcwd()
-    # pathLis = path.split("\\")
-    # #pathLis.pop()
-    # pathLis.append("app")
-    # pathLis.append("src")
-    # pathLis.append("test-data")
-    # pathLis.append(ds_job)
-    # #pathLis.append("Validations-Reports.zip")
-    # path = "\\".join(pathLis)
-    pass
+    os.system("python " + utils.get_pySpark(ds_job))
+    resp = csvComp.rest_compare_csv(ds_job)
+    return resp
 
 
 if __name__ == "__main__":

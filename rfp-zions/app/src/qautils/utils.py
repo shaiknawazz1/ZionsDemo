@@ -19,19 +19,9 @@ def get_input_folder(job_name = None):
     else:
         sep = "/"
     p1 = os.getcwd()
-    if job_name == None or job_name == "":
+    if job_name == None or job_name.isEmpty():
         return p1 + sep + "rfp-zions" + sep + "app" + sep + "test-data"
     return p1 + sep + "rfp-zions" + sep + "app" + sep + "test-data" + sep + job_name + sep
-
-def get_pySpark(job_name ):
-    """return the path for input files to validate data stage job"""
-    sep = ""
-    if platform.system() == 'Windows':
-        sep = "\\"
-    else:
-        sep = "/"
-    p1 = os.getcwd()
-    return p1 + sep + "rfp-zions" + sep + "app" + sep + "src" + sep + "pyspark" + sep + job_name + ".py"
 
 def getJobsList():
     rootdir = get_input_folder()
