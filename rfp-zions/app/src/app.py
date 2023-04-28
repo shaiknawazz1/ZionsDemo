@@ -1,6 +1,7 @@
 from time import sleep
 from flask import Flask, send_from_directory, make_response, send_file
 from flask_restx import Api, Resource, fields
+from flask import send_file
 from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.datastructures import FileStorage
 import os
@@ -54,14 +55,24 @@ class DSValidator(Resource):
         args = parser.parse_args()
         ds_name = args["dsName"]
         resp = validateDSJob(ds_name)
-        return resp, 201
+        return send_file(resp, attachment_filename='Validations-Reports.zip', as_attachment=True)
+        #return resp, 201
 
 
 def validateDSJob(ds_job):
     #TODO Suriya please add a testing logic here and generate the detailed report
     # identify the job name
     #resp = csvComp.initaiteValidation(mdlName)
-    return {"Inprogress": "Soon you will be seeing beatiful things"}
+    # path = os.getcwd()
+    # pathLis = path.split("\\")
+    # #pathLis.pop()
+    # pathLis.append("app")
+    # pathLis.append("src")
+    # pathLis.append("test-data")
+    # pathLis.append(ds_job)
+    # #pathLis.append("Validations-Reports.zip")
+    # path = "\\".join(pathLis)
+    pass
 
 
 if __name__ == "__main__":

@@ -1,41 +1,57 @@
-# Code converted on 2023-04-26 15:38:19
+# Code converted on 2023-04-27 14:43:59
 import os
 from pyspark.sql import *
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
 from pyspark import SparkContext
 from pyspark.sql.session import SparkSession
+
 sc = SparkContext('local')
 spark = SparkSession(sc)
 
 
-# COMMAND ----------
+def convert_encoding(input_str, from_encoding="ISO-8859-1", to_encoding="UTF-8"):
+    return input_str.encode(from_encoding).decode(to_encoding)
+
+
+udf_convert_encoding = udf(convert_encoding, StringType())
+
+
+def days_in_year(date_str):
+    year = int(date_str[:4])
+    if calendar.isleap(year):
+        return 366
+    else:
+        return 365
+
+
+udf_days_in_year = udf(days_in_year, IntegerType())
+
+
 # Variable_declaration_comment
-dbutils.widgets.text(name='Appl', defaultValue='fah_fls')
-Appl = dbutils.widgets.get("Appl")
+os.environ['Appl'] = 'fah_fls'
+Appl = os.getenv('Appl')
 
-dbutils.widgets.text(name='Src_Sys_Ref_Name', defaultValue='FLS170131D.TXT')
-Src_Sys_Ref_Name = dbutils.widgets.get("Src_Sys_Ref_Name")
+os.environ['Src_Sys_Ref_Name'] = 'FLS170131D.TXT'
+Src_Sys_Ref_Name = os.getenv('Src_Sys_Ref_Name')
 
-dbutils.widgets.text(name='PS_FAH', defaultValue='')
-PS_FAH = dbutils.widgets.get("PS_FAH")
+os.environ['PS_FAH'] = ''
+PS_FAH = os.getenv('PS_FAH')
 
-dbutils.widgets.text(name='FileName', defaultValue='FLS20170131D.TXT')
-FileName = dbutils.widgets.get("FileName")
+os.environ['FileName'] = 'FLS20170131D.TXT'
+FileName = os.getenv('FileName')
 
-dbutils.widgets.text(name='ACCT_DATE', defaultValue='20170131')
-ACCT_DATE = dbutils.widgets.get("ACCT_DATE")
+os.environ['ACCT_DATE'] = '20170131'
+ACCT_DATE = os.getenv('ACCT_DATE')
 
 
-# COMMAND ----------
 # Processing node FLS_Extr_in_lnk, type SOURCE
 # COLUMN COUNT: 1
 # Original node name FLS_Ext, link FLS_Extr_in_lnk
 
 FLS_Extr_in_lnk = spark.read.csv(
-    "#PS_FAH.RECEIVE_DIR#/"+Appl+"/FLS"+ACCT_DATE+"D.TXT", sep=',', header='false')
+    ""+PS_FAH+"/"+Appl+"/FLS"+ACCT_DATE+"D.TXT", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node RowGen_lnk, type ROW_GENERATOR
 # COLUMN COUNT: 1
 # Original node name Process_control_rg, link RowGen_lnk
@@ -49,7 +65,6 @@ RowGen_lnk = spark.createDataFrame(data=[
 ],
     schema=RowGen_lnk_schema)
 
-# COMMAND ----------
 # Processing node Agg_In, type TRANSFORMATION
 # COLUMN COUNT: 6
 # Original node name FLS_Xfm, link Agg_In
@@ -61,11 +76,10 @@ Agg_In = FLS_Extr_in_lnk.select(
         FLS_Extr_in_lnk.RECORD, lit(42)), (lit(15))) / lit(100))).otherwise(lit(0))).alias('CREDIT_AMOUNT'),
     (when((substring(FLS_Extr_in_lnk.RECORD, lit(57)).otherwise(lit(1)) == lit('D'), trim(substring(
         FLS_Extr_in_lnk.RECORD, lit(42)), (lit(15))) / lit(100))).otherwise(lit(0))).alias('DEBIT_AMOUNT'),
-    (lit('{ACCT_DATE}')).alias('ACCOUNTING_DATE'),
+    (lit(ACCT_DATE)).alias('ACCOUNTING_DATE'),
     (lit(1)).alias('COUNT')
 ).filter("SUBSTRING ( RECORD , 1 , 1 ) = 'L'")
 
-# COMMAND ----------
 # Processing node fls_hdr, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name FLS_Xfm, link fls_hdr
@@ -78,7 +92,6 @@ fls_hdr = FLS_Extr_in_lnk.select(
     (substring(FLS_Extr_in_lnk.RECORD, lit(27), lit(15))).alias('TOTAL_CREDITS')
 ).filter("SUBSTRING ( RECORD , 1 , 1 ) = 'H'")
 
-# COMMAND ----------
 # Processing node fls_ln, type TRANSFORMATION
 # COLUMN COUNT: 21
 # Original node name FLS_Xfm, link fls_ln
@@ -107,14 +120,12 @@ fls_ln = FLS_Extr_in_lnk.select(
     (substring(FLS_Extr_in_lnk.RECORD, lit(322), lit(50))).alias('INTERNAL_GL_NUM')
 ).filter("SUBSTRING ( RECORD , 1 , 1 ) = 'L'")
 
-# COMMAND ----------
 # Processing node fls_Ext_ld_ds, type TRANSFORMATION
-# COLUMN COUNT: 29
+# COLUMN COUNT: 28
 # Original node name FLS_Xfm, link fls_Ext_ld_ds
 
-fls_Ext_ld_ds = FLS_Extr_in_lnk.select(
-    @ OUTROWNUM.alias('LINE_NUM'),
-    (lit('{Src_Sys_Ref_Name}')).alias('SOURCE_SYSTEM_REF_NAME'),
+fls_Ext_ld_ds = FLS_Extr_in_lnk.withColumn('DF_ROW_ID', monotonically_increasing_id()).select(
+    (lit(Src_Sys_Ref_Name)).alias('SOURCE_SYSTEM_REF_NAME'),
     (lit('FLS')).alias('SYS_CODE'),
     (substring(FLS_Extr_in_lnk.RECORD, lit(1), lit(1))).alias('RECORD_TYPE'),
     (substring(FLS_Extr_in_lnk.RECORD, lit(2), lit(4)) + lit('-') + substring(FLS_Extr_in_lnk.RECORD,
@@ -152,7 +163,6 @@ fls_Ext_ld_ds = FLS_Extr_in_lnk.select(
     (lit(1)).alias('LKP_KEY')
 ).filter("SUBSTRING ( RECORD , 1 , 1 ) = 'L'")
 
-# COMMAND ----------
 # Processing node Hdr_Lkp_lnk, type TRANSFORMATION
 # COLUMN COUNT: 4
 # Original node name FLS_Xfm, link Hdr_Lkp_lnk
@@ -166,15 +176,13 @@ Hdr_Lkp_lnk = FLS_Extr_in_lnk.select(
      lit(100)).alias('DEBIT_AMOUNT')
 ).filter("SUBSTRING ( RECORD , 1 , 1 ) = 'H'")
 
-# COMMAND ----------
 # Processing node FLS_Extr_ds, type TARGET
 # COLUMN COUNT: 21
 
 FLS_Extr_ds = fls_ln.select('*')
-spark.sql('drop table if exists FLS_Extr_ds')
-SA_CUSTOMER_DS.write.saveAsTable(FLS_Extr_ds)
+FLS_Extr_ds.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('#PS_FAH.DATASET_DIR#/FLS_IN.ds')
 
-# COMMAND ----------
 # Processing node processctlsp_lnk, type AGGREGATOR
 # COLUMN COUNT: 5
 # Original node name FLS_Agg, link processctlsp_lnk
@@ -190,23 +198,20 @@ processctlsp_lnk = Agg_In.groupBy("LKP_KEY", "ACCOUNTING_DATE").agg(
     'TOTAL_DEBIT_AMOUNT'
 )
 
-# COMMAND ----------
 # Processing node FLS_hdr, type TARGET
 # COLUMN COUNT: 5
 
 FLS_hdr = fls_hdr.select('*')
-spark.sql('drop table if exists FLS_hdr')
-SA_CUSTOMER_DS.write.saveAsTable(FLS_hdr)
+FLS_hdr.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('#PS_FAH.DATASET_DIR#/FLS_HDR.ds')
 
-# COMMAND ----------
 # Processing node FLS_Ext_ld_ds, type TARGET
 # COLUMN COUNT: 29
 
 FLS_Ext_ld_ds = fls_Ext_ld_ds.select('*')
-spark.sql('drop table if exists FLS_Ext_ld_ds')
-SA_CUSTOMER_DS.write.saveAsTable(FLS_Ext_ld_ds)
+FLS_Ext_ld_ds.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('#PS_FAH.DATASET_DIR#/FLS.ds')
 
-# COMMAND ----------
 # Processing node Processid_lnk, type MERGE
 # COLUMN COUNT: 7
 # Original node name Processid_lkp, link Processid_lnk
@@ -221,7 +226,6 @@ Processid_lnk = RowGen_lnk.join(processctlsp_lnk, [processctlsp_lnk.LKP_KEY == R
     Hdr_Lkp_lnk.CREDIT_AMOUNT.alias('CREDIT_AMOUNT_HDR')
 )
 
-# COMMAND ----------
 # Processing node Ind_Out_lnk, type TRANSFORMATION
 # COLUMN COUNT: 1
 # Original node name FLS_bal_trn, link Ind_Out_lnk
@@ -249,7 +253,6 @@ Ind_Out_lnk = Ind_Out_lnk.withColumn("BALDESC", when(((LINESCREDIT == HDRCREDIT)
     Processid_lnk.BALDESC.alias('BAL_DESC')
 )
 
-# COMMAND ----------
 # Processing node process_control_lnk, type TRANSFORMATION
 # COLUMN COUNT: 9
 # Original node name FLS_bal_trn, link process_control_lnk
@@ -274,9 +277,9 @@ process_control_lnk = process_control_lnk.withColumn(
     "HDRCOUNT", Processid_lnk.TOTAL_RECORDS_HDR)
 
 process_control_lnk = process_control_lnk.withColumn("BALDESC", when(((LINESCREDIT == HDRCREDIT) & (LINESDEBIT == HDRDEBIT) & (HDRCREDIT == HDRDEBIT) & (LINESCREDIT == LINESDEBIT) & (HDRCOUNT == LINESCOUNT)), (lit('BAL'))).otherwise(lit(' Validation failed for file: ') + Src_Sys_Ref_Name + char(lit(10)) + lit('Header counts:') + HDRCOUNT AS STRING) + lit('    Lines count:') + LINESCOUNT AS STRING) + char(lit(10)) + lit('Header credit amount:') + HDRCREDIT AS STRING) + lit('  Lines credit amount:') + CAST(LINESCREDIT .cast(STRING) + char(lit(10)) + lit('Header debit amount:') + CAST(HDRDEBIT .cast(STRING) + lit('  Lines debit amount:') + CAST(LINESDEBIT .cast(STRING))).select(
-    (when((Processid_lnk.ACCOUNTING_DATE == None, lit('{ACCT_DATE}') .cast(date))).otherwise(
-        (DecimalToDate(Processid_lnk.ACCOUNTING_DATE)).otherwise(lit('YYYYMMDD')))).alias('ACCOUNTING_DATE'),
-    (lit('{Src_Sys_Ref_Name}')).alias('FILE_NAME'),
+    (when((Processid_lnk.ACCOUNTING_DATE == None, lit(ACCT_DATE) .cast(date))).otherwise((to_date(from_unixtime(unix_timestamp(
+        Processid_lnk.ACCOUNTING_DATE.cast("string"), 'yyyyMMdd')))).otherwise(lit('YYYYMMDD')))).alias('ACCOUNTING_DATE'),
+    (lit(Src_Sys_Ref_Name)).alias('FILE_NAME'),
     (lit('FLS')).alias('SYS_CD'),
     (lit('U')).alias('STATUS'),
     Processid_lnk.TOTAL_CREDIT_AMOUNT_LINES.alias('TOTAL_AMOUNT'),
@@ -286,18 +289,15 @@ process_control_lnk = process_control_lnk.withColumn("BALDESC", when(((LINESCRED
     (lit(1)).alias('LKP_KEY')
 )
 
-# COMMAND ----------
 # Processing node process_control_ds, type TARGET
 # COLUMN COUNT: 9
 
 process_control_ds = process_control_lnk.select('*')
-spark.sql('drop table if exists process_control_ds')
-SA_CUSTOMER_DS.write.saveAsTable(process_control_ds)
+process_control_ds.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('#PS_FAH.DATASET_DIR#/FLS_PRCS_CNTL.ds')
 
-# COMMAND ----------
 # Processing node FLS_BAL_STATUS_Seq, type TARGET
 # COLUMN COUNT: 1
 
 FLS_BAL_STATUS_Seq = Ind_Out_lnk.select('*')
-spark.sql('drop table if exists FLS_BAL_STATUS_Seq')
-SA_CUSTOMER_DS.write.saveAsTable(FLS_BAL_STATUS_Seq)
+FLS_BAL_STATUS_Seq.write.format('csv').option('header', 'false').mode('overwrite').option('sep', ',').csv('#PS_FAH.STG_DIR#/{getArgument('Appl')}/{getArgument('FileName')}_BAL_STATUS.txt')

@@ -1,37 +1,53 @@
-# Code converted on 2023-04-26 15:38:26
+# Code converted on 2023-04-27 14:44:07
 import os
 from pyspark.sql import *
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
 from pyspark import SparkContext
 from pyspark.sql.session import SparkSession
+
 sc = SparkContext('local')
 spark = SparkSession(sc)
 
 
-# COMMAND ----------
+def convert_encoding(input_str, from_encoding="ISO-8859-1", to_encoding="UTF-8"):
+    return input_str.encode(from_encoding).decode(to_encoding)
+
+
+udf_convert_encoding = udf(convert_encoding, StringType())
+
+
+def days_in_year(date_str):
+    year = int(date_str[:4])
+    if calendar.isleap(year):
+        return 366
+    else:
+        return 365
+
+
+udf_days_in_year = udf(days_in_year, IntegerType())
+
+
 # Variable_declaration_comment
-dbutils.widgets.text(
-    name='SOURCE_DIR', defaultValue='/nas_pp/dev/dw/data/conv_253')
-SOURCE_DIR = dbutils.widgets.get("SOURCE_DIR")
+os.environ['SOURCE_DIR'] = '/nas_pp/dev/dw/data/conv_253'
+SOURCE_DIR = os.getenv('SOURCE_DIR')
 
-dbutils.widgets.text(name='STG_DIR', defaultValue='/nas_pp/dev/dw/stg')
-STG_DIR = dbutils.widgets.get("STG_DIR")
+os.environ['STG_DIR'] = '/nas_pp/dev/dw/stg'
+STG_DIR = os.getenv('STG_DIR')
 
-dbutils.widgets.text(name='HASH_DIR', defaultValue='/nas_pp/dev/dw/hash')
-HASH_DIR = dbutils.widgets.get("HASH_DIR")
+os.environ['HASH_DIR'] = '/nas_pp/dev/dw/hash'
+HASH_DIR = os.getenv('HASH_DIR')
 
-dbutils.widgets.text(name='FMT_DIR', defaultValue='/nas_pp/dev/dw/fmt')
-FMT_DIR = dbutils.widgets.get("FMT_DIR")
+os.environ['FMT_DIR'] = '/nas_pp/dev/dw/fmt'
+FMT_DIR = os.getenv('FMT_DIR')
 
-dbutils.widgets.text(name='BANK_NUM', defaultValue='101')
-BANK_NUM = dbutils.widgets.get("BANK_NUM")
+os.environ['BANK_NUM'] = '101'
+BANK_NUM = os.getenv('BANK_NUM')
 
-dbutils.widgets.text(name='DATA_DATE', defaultValue='20060806')
-DATA_DATE = dbutils.widgets.get("DATA_DATE")
+os.environ['DATA_DATE'] = '20060806'
+DATA_DATE = os.getenv('DATA_DATE')
 
 
-# COMMAND ----------
 # Processing node LkpTIMSTNaturalHash, type SOURCE
 # COLUMN COUNT: 3
 # Original node name DepositTIMSTNaturalHash_REF, link LkpTIMSTNaturalHash
@@ -39,21 +55,18 @@ DATA_DATE = dbutils.widgets.get("DATA_DATE")
 LkpTIMSTNaturalHash = spark.read.csv(
     "DepositTIMSTNaturalHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ESTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalEstmtDPSTHash, link ESTMT_LKP
 
 ESTMT_LKP = spark.read.csv("ABalEstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node NSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalNstmtDPSTHash, link NSTMT_LKP
 
 NSTMT_LKP = spark.read.csv("ABalNstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node SEQ_IN, type SOURCE
 # COLUMN COUNT: 386
 # Original node name TIMST, link SEQ_IN
@@ -61,28 +74,24 @@ NSTMT_LKP = spark.read.csv("ABalNstmtDPSTHash", sep=',', header='false')
 SEQ_IN = spark.read.csv(""+SOURCE_DIR+"/timeV8.3.1/time_tismst_" +
                         BANK_NUM+"_"+DATA_DATE+".253", sep='ý', header='true')
 
-# COMMAND ----------
 # Processing node TSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalTstmtDPSTHash, link TSTMT_LKP
 
 TSTMT_LKP = spark.read.csv("ABalTstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node CSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalCstmtDPSTHash, link CSTMT_LKP
 
 CSTMT_LKP = spark.read.csv("ABalCstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ACCT_Lkp, type SOURCE
 # COLUMN COUNT: 91
 # Original node name DepositTIMSTHash_REF, link ACCT_Lkp
 
 ACCT_Lkp = spark.read.csv("DepositTIMSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node LkpECF_STATUSCD, type SOURCE
 # COLUMN COUNT: 6
 # Original node name ECF_STATUSCD_IN2_Hash, link LkpECF_STATUSCD
@@ -90,21 +99,18 @@ ACCT_Lkp = spark.read.csv("DepositTIMSTHash", sep=',', header='false')
 LkpECF_STATUSCD = spark.read.csv(
     "ECF_STATUSCD_IN2_Hash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node NULLSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalNULLstmtDPSTHash, link NULLSTMT_LKP
 
 NULLSTMT_LKP = spark.read.csv("ABalNULLstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ODH_LKP, type SOURCE
 # COLUMN COUNT: 3
 # Original node name OdateHash_REF, link ODH_LKP
 
 ODH_LKP = spark.read.csv("OdateHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ABCDDH_LKP, type SOURCE
 # COLUMN COUNT: 29
 # Original node name AcctBalTimstDpstDailyHash_Lkp, link ABCDDH_LKP
@@ -112,7 +118,6 @@ ODH_LKP = spark.read.csv("OdateHash", sep=',', header='false')
 ABCDDH_LKP = spark.read.csv(
     "AcctBalTimstDpstDailyHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node Timst_INTRATE_Lkup, type SOURCE
 # COLUMN COUNT: 5
 # Original node name AcctBal_Timst_INTRATE_Dpst_Hash_REF, link Timst_INTRATE_Lkup
@@ -120,21 +125,18 @@ ABCDDH_LKP = spark.read.csv(
 Timst_INTRATE_Lkup = spark.read.csv(
     "AcctBal_Timst_INTRATE_Dpst_Hash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalBstmtDPSTHash, link BSTMT_LKP
 
 BSTMT_LKP = spark.read.csv("ABalBstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node PSTMT_LKP, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ABalPstmtDPSTHash, link PSTMT_LKP
 
 PSTMT_LKP = spark.read.csv("ABalPstmtDPSTHash", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node PASS_IN, type TRANSFORMATION
 # COLUMN COUNT: 55
 # Original node name ACCT_BAL_TIMST, link PASS_IN
@@ -162,9 +164,9 @@ PASS_IN = PASS_IN_joined
 PASS_IN = PASS_IN.withColumn("ACCTBALID", when((length(LkpTIMSTNaturalHash.ACCT_ID) == lit(
     0)), (KeyMgtGetNextValueConcurrent((lit('acct_bal_id'))))).otherwise(LkpTIMSTNaturalHash.ACCT_ID))
 
-PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((NOT(Timst_INTRATE_Lkup.NOTFOUND), when((trim(SEQ_IN.TIMST_INTRATE) == Timst_INTRATE_Lkup.TIMST_INTRATE)).otherwise((Timst_INTRATE_Lkup.LAST_INT_REPRC_DT))).otherwise((DATA_DATE))).otherwise(trim(SEQ_IN.TIMST_RENLAST))).select(
+PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((Not(Timst_INTRATE_Lkup.NOTFOUND), when((trim(SEQ_IN.TIMST_INTRATE) == Timst_INTRATE_Lkup.TIMST_INTRATE)).otherwise((Timst_INTRATE_Lkup.LAST_INT_REPRC_DT))).otherwise((DATA_DATE))).otherwise(trim(SEQ_IN.TIMST_RENLAST))).select(
     LkpTIMSTNaturalHash.ACCT_ID.alias('ACCT_ID'),
-    (lit('{DATA_DATE}')).alias('AS_OF_DT'),
+    (lit(DATA_DATE)).alias('AS_OF_DT'),
     (lit(None).cast(NullType())).alias('DATA_DT'),
     (when((length(SEQ_IN.TIMST_BALCUR) == lit(0)), (lit(0))
           ).otherwise(SEQ_IN.TIMST_BALCUR)).alias('CUR_BAL'),
@@ -174,14 +176,14 @@ PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((NOT(Timst_INTRATE_Lkup.NO
         SEQ_IN.TIMST_INTRATE * lit(100))).alias('INT_RATE'),
     (lit(None).cast(NullType())).alias('INT_DT'),
     (lit(None).cast(NullType())).alias('INT_INDX_BASE_RATE'),
-    (when(((SEQ_IN.TIMST_BALCUR != lit(0)) & (SEQ_IN.TIMST_INTRATE != lit(0)), when((SEQ_IN.TIMST_INTCODE == lit('B')).otherwise(SEQ_IN.TIMST_BALCUR * (SEQ_IN.TIMST_INTRATE) / (NoOfDaysInYear(lit('{DATA_DATE}')))).otherwise(when((SEQ_IN.TIMST_INTCODE == lit(
-        'C'))).otherwise(((SEQ_IN.TIMST_BALCAGR / substring((LastDayCurrMonth(lit('{DATA_DATE}')))))).otherwise((lit(2))) * (SEQ_IN.TIMST_INTRATE) / (NoOfDaysInYear(lit('{DATA_DATE}')))))).otherwise((lit(0)))).otherwise(lit(0)))).alias('INT_PERDIEM_AMT'),
+    (when(((SEQ_IN.TIMST_BALCUR != lit(0)) & (SEQ_IN.TIMST_INTRATE != lit(0)), when((SEQ_IN.TIMST_INTCODE == lit('B')).otherwise(SEQ_IN.TIMST_BALCUR * (SEQ_IN.TIMST_INTRATE) / (udf_days_in_year(lit(DATA_DATE)))).otherwise(when((SEQ_IN.TIMST_INTCODE == lit('C'))
+                                                                                                                                                                                                                                   ).otherwise(((SEQ_IN.TIMST_BALCAGR / substring((last_day(to_date(lit(DATA_DATE), 'yyyy-MM-dd')))))).otherwise((lit(2))) * (SEQ_IN.TIMST_INTRATE) / (udf_days_in_year(lit(DATA_DATE)))))).otherwise((lit(0)))).otherwise(lit(0)))).alias('INT_PERDIEM_AMT'),
     (lit(0)).alias('MTD_LOWEST_CUR_ACCT_BAL'),
     (lit(0)).alias('YTD_LOWEST_CUR_ACCT_BAL'),
     (lit(0)).alias('MTD_HIGHEST_CUR_ACCT_BAL'),
     (lit(0)).alias('YTD_HIGHEST_CUR_ACCT_BAL'),
-    (when((LkpECF_STATUSCD.OUT_1 == lit('C'), None).otherwise(when((Iconv(trim(SEQ_IN.TIMST_RATENEXT)).otherwise(lit('D')) > Iconv(trim(SEQ_IN.TIMST_ISSDATE))
-                                                                    ).otherwise((lit('D'))))).otherwise((trim(SEQ_IN.TIMST_RATENEXT))).otherwise(trim(SEQ_IN.TIMST_RENNEXT)))).alias('NEXT_INT_REPRC_DT'),
+    (when((LkpECF_STATUSCD.OUT_1 == lit('C'), None).otherwise(when((udf_convert_encoding(trim(SEQ_IN.TIMST_RATENEXT)).otherwise(lit('D')) > udf_convert_encoding(
+        trim(SEQ_IN.TIMST_ISSDATE))).otherwise((lit('D'))))).otherwise((trim(SEQ_IN.TIMST_RATENEXT))).otherwise(trim(SEQ_IN.TIMST_RENNEXT)))).alias('NEXT_INT_REPRC_DT'),
     (date_format(current_timestamp, lit('y-MM-dd'))).alias('ENTRY_DT'),
     (lit(0)).alias('MTD_AGGR_BANK_SHR_BAL'),
     (lit(0)).alias('MTD_AGGR_BAL'),
@@ -190,8 +192,8 @@ PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((NOT(Timst_INTRATE_Lkup.NO
     (lit(0)).alias('MTD_AVG_BAL'),
     (lit(0)).alias('MTD_AVG_BANK_BAL'),
     (lit(0)).alias('MTD_AVG_WT_INT_RATE'),
-    (when((Iconv(trim(SEQ_IN.TIMST_INTDTCHG), lit('D')) > Iconv(trim(SEQ_IN.TIMST_ISSDATE)).otherwise(
-        lit('D')))).otherwise((trim(SEQ_IN.TIMST_INTDTCHG))).otherwise(None)).alias('LAST_INT_REPRC_DT'),
+    (when((udf_convert_encoding(trim(SEQ_IN.TIMST_INTDTCHG), lit('D')) > udf_convert_encoding(trim(SEQ_IN.TIMST_ISSDATE)
+                                                                                              ).otherwise(lit('D')))).otherwise((trim(SEQ_IN.TIMST_INTDTCHG))).otherwise(None)).alias('LAST_INT_REPRC_DT'),
     (lit(0)).alias('MTD_AGGR_INT_RATE'),
     (lit(0)).alias('YTD_INT_ACCR_AMT'),
     (lit(0)).alias('YTD_AGGR_BAL'),
@@ -201,8 +203,8 @@ PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((NOT(Timst_INTRATE_Lkup.NO
     (lit(0)).alias('YTD_AGGR_INT_RATE'),
     (when((length(trim(SEQ_IN.TIMST_INTENP)) > lit(0)),
      (SEQ_IN.TIMST_INTENP)).otherwise(lit(0))).alias('INT_ACCR_BAL'),
-    (when(((SEQ_IN.TIMST_BALCUR != lit(0)) & (SEQ_IN.TIMST_INTRATE != lit(0)), when((SEQ_IN.TIMST_INTCODE == lit('B')).otherwise(SEQ_IN.TIMST_BALCUR * (SEQ_IN.TIMST_INTRATE) / (NoOfDaysInYear(lit('{DATA_DATE}')))).otherwise(when((SEQ_IN.TIMST_INTCODE == lit(
-        'C'))).otherwise(((SEQ_IN.TIMST_BALCAGR / substring((LastDayCurrMonth(lit('{DATA_DATE}')))))).otherwise((lit(2))) * (SEQ_IN.TIMST_INTRATE) / (NoOfDaysInYear(lit('{DATA_DATE}')))))).otherwise((lit(0)))).otherwise(lit(0)))).alias('BANK_SHR_INT_PERDIEM_AMT'),
+    (when(((SEQ_IN.TIMST_BALCUR != lit(0)) & (SEQ_IN.TIMST_INTRATE != lit(0)), when((SEQ_IN.TIMST_INTCODE == lit('B')).otherwise(SEQ_IN.TIMST_BALCUR * (SEQ_IN.TIMST_INTRATE) / (udf_days_in_year(lit(DATA_DATE)))).otherwise(when((SEQ_IN.TIMST_INTCODE == lit('C'))
+                                                                                                                                                                                                                                   ).otherwise(((SEQ_IN.TIMST_BALCAGR / substring((last_day(to_date(lit(DATA_DATE), 'yyyy-MM-dd')))))).otherwise((lit(2))) * (SEQ_IN.TIMST_INTRATE) / (udf_days_in_year(lit(DATA_DATE)))))).otherwise((lit(0)))).otherwise(lit(0)))).alias('BANK_SHR_INT_PERDIEM_AMT'),
     (when((length(trim(SEQ_IN.TIMST_INTENP)) > lit(0)), (SEQ_IN.TIMST_INTENP)
           ).otherwise(lit(0))).alias('BANK_SHR_INT_ACCR_BAL'),
     (lit(0)).alias('GL_YTD_AGGR_BANK_SHR_INT_AMT'),
@@ -232,7 +234,6 @@ PASS_IN = PASS_IN.withColumn("CDLastIntReprcDt", when((NOT(Timst_INTRATE_Lkup.NO
     (when(((length(trim(SEQ_IN.TIMST_INTINDEX)) > lit(0)) & (TRY_trim(SEQ_IN.TIMST_INTINDEX) .cast(NUMERIC) IS NOT None)), (trim(SEQ_IN.TIMST_INTINDEX))).otherwise(lit(0))).alias('TIMST_INTINDEX')
 )
 
-# COMMAND ----------
 # Processing node ACCT_BAL_OUT, type TRANSFORMATION
 # COLUMN COUNT: 41
 # Original node name Acct_bal, link ACCT_BAL_OUT
@@ -289,7 +290,6 @@ ACCT_BAL_OUT = ACCT_BAL_OUT.withColumn("RptRecInd", SetRptRecInd(ACCT_Lkp.OPEN_C
         PASS_IN.PAPER_STMT_CNT)).alias('PAPER_STMT_CNT')
 )
 
-# COMMAND ----------
 # Processing node ACCT_OUT, type TRANSFORMATION
 # COLUMN COUNT: 85
 # Original node name Acct_bal, link ACCT_OUT
@@ -389,7 +389,6 @@ ACCT_OUT = ACCT_OUT.withColumn("RptRecInd", SetRptRecInd(ACCT_Lkp.OPEN_CLOSE_CD,
     ACCT_Lkp.ENOTICE_IND.alias('ENOTICE_IND')
 ).filter("NOT(ACCT_Lkp.NOTFOUND) AND LEN(ACCT_ID) > 0")
 
-# COMMAND ----------
 # Processing node Timst_INTRATE_OUT, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name Acct_bal, link Timst_INTRATE_OUT
@@ -407,15 +406,13 @@ Timst_INTRATE_OUT = Timst_INTRATE_OUT.withColumn("RptRecInd", SetRptRecInd(ACCT_
     PASS_IN.NEXT_INT_REPRC_DT.alias('NEXT_INT_REPRC_DT')
 ).filter("OPEN_CLOSE_CD = 'O'")
 
-# COMMAND ----------
 # Processing node DepositTIMSTHash, type TARGET
 # COLUMN COUNT: 85
 
 DepositTIMSTHash = ACCT_OUT.select('*')
-spark.sql('drop table if exists DepositTIMSTHash')
-SA_CUSTOMER_DS.write.saveAsTable(DepositTIMSTHash)
+DepositTIMSTHash.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('DepositTIMSTHash')
 
-# COMMAND ----------
 # Processing node SEQ_IN_CONV2, type TRANSFORMATION
 # COLUMN COUNT: 49
 # Original node name Acct_bal_Final, link SEQ_IN_CONV2
@@ -475,28 +472,23 @@ SEQ_IN_CONV2 = SEQ_IN_CONV2_joined.select(
     ACCT_BAL_OUT.PAPER_STMT_CNT.alias('PAPER_STMT_CNT')
 )
 
-# COMMAND ----------
 # Processing node HASH_IN, type TARGET
 # COLUMN COUNT: 49
 # Original node name Timst_Daily_stg, link HASH_IN
 
 
 HASH_IN = SEQ_IN_CONV2.select('*')
-spark.sql('drop table if exists HASH_IN')
-SA_CUSTOMER_DS.write.saveAsTable(HASH_IN)
+HASH_IN.write.format('csv').option('header', 'false').mode('overwrite').option('sep', 'ý').csv('{getArgument('STG_DIR')}/Timst_Daily_Final.stg')
 
-# COMMAND ----------
 # Processing node AcctBal_Timst_INTRATE_Dpst_Hash, type TARGET
 # COLUMN COUNT: 5
 
 AcctBal_Timst_INTRATE_Dpst_Hash = Timst_INTRATE_OUT.select('*')
-spark.sql('drop table if exists AcctBal_Timst_INTRATE_Dpst_Hash')
-SA_CUSTOMER_DS.write.saveAsTable(AcctBal_Timst_INTRATE_Dpst_Hash)
+AcctBal_Timst_INTRATE_Dpst_Hash.write.format('csv').option('header', 'false').mode(
+    'overwrite').option('sep', ',').csv('AcctBal_Timst_INTRATE_Dpst_Hash')
 
-# COMMAND ----------
 # Processing node AcctBal_Timst_Dpst_Hash, type TARGET
 # COLUMN COUNT: 49
 
 AcctBal_Timst_Dpst_Hash = HASH_IN.select('*')
-spark.sql('drop table if exists AcctBal_Timst_Dpst_Hash')
-SA_CUSTOMER_DS.write.saveAsTable(AcctBal_Timst_Dpst_Hash)
+AcctBal_Timst_Dpst_Hash.write.format('csv').option('header', 'false').mode('overwrite').option('sep', ',').csv('{getArgument('STG_DIR')}/Timst_Daily_Final.stg')

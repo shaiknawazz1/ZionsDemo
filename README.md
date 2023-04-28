@@ -22,7 +22,7 @@
 
 ## Configuring the gke env using terraform
 1. navigate to `terraform-gke` folder from the root.
-2. download the credentails file from google cloud account (make sure this service account has necessary permissions required)
+2. download the credentials file from google cloud account (make sure this service account has necessary permissions required)
 3. rename the file credentials.json and place in `terraform-gke` folder and run the below commands 
    
    ```

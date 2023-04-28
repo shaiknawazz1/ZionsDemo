@@ -1,196 +1,187 @@
-#Code converted on 2023-04-26 15:38:17
+#Code converted on 2023-04-27 14:43:57
 import os
 from pyspark.sql import *
 from pyspark.sql.types import *
 from pyspark.sql.functions import *
 from pyspark import SparkContext
 from pyspark.sql.session import SparkSession
+
 sc = SparkContext('local')
 spark = SparkSession(sc)
 
+def convert_encoding(input_str, from_encoding="ISO-8859-1", to_encoding="UTF-8"):
+	return input_str.encode(from_encoding).decode(to_encoding)
 
-# COMMAND ----------
+udf_convert_encoding = udf(convert_encoding, StringType())
+
+def days_in_year(date_str):
+    year = int(date_str[:4])
+    if calendar.isleap(year):
+        return 366
+    else:
+        return 365
+
+udf_days_in_year = udf(days_in_year, IntegerType())
+
+
 # Variable_declaration_comment
-dbutils.widgets.text(name = 'SOURCE_DIR', defaultValue = '/nas_pp/test/dw/data/conv_253')
-SOURCE_DIR = dbutils.widgets.get("SOURCE_DIR")
+os.environ['SOURCE_DIR'] = '/nas_pp/test/dw/data/conv_253'
+SOURCE_DIR = os.getenv('SOURCE_DIR')
 
-dbutils.widgets.text(name = 'STG_DIR', defaultValue = '/nas_pp/test/dw/stg')
-STG_DIR = dbutils.widgets.get("STG_DIR")
+os.environ['STG_DIR'] = '/nas_pp/test/dw/stg'
+STG_DIR = os.getenv('STG_DIR')
 
-dbutils.widgets.text(name = 'DS_DIR', defaultValue = '/nas_pp/test/dw/stg_ds')
-DS_DIR = dbutils.widgets.get("DS_DIR")
+os.environ['DS_DIR'] = '/nas_pp/test/dw/stg_ds'
+DS_DIR = os.getenv('DS_DIR')
 
-dbutils.widgets.text(name = 'REJECT_DIR', defaultValue = '/nas_pp/test/dw/rejects')
-REJECT_DIR = dbutils.widgets.get("REJECT_DIR")
+os.environ['REJECT_DIR'] = '/nas_pp/test/dw/rejects'
+REJECT_DIR = os.getenv('REJECT_DIR')
 
-dbutils.widgets.text(name = 'BANK_NUM', defaultValue = '100')
-BANK_NUM = dbutils.widgets.get("BANK_NUM")
+os.environ['BANK_NUM'] = '100'
+BANK_NUM = os.getenv('BANK_NUM')
 
-dbutils.widgets.text(name = 'DATA_DATE', defaultValue = '20191006')
-DATA_DATE = dbutils.widgets.get("DATA_DATE")
+os.environ['DATA_DATE'] = '20191006'
+DATA_DATE = os.getenv('DATA_DATE')
 
-dbutils.widgets.text(name = 'APPL_CD', defaultValue = 'BN')
-APPL_CD = dbutils.widgets.get("APPL_CD")
+os.environ['APPL_CD'] = 'BN'
+APPL_CD = os.getenv('APPL_CD')
 
-dbutils.widgets.text(name = 'DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR', defaultValue = '1')
-DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR = dbutils.widgets.get("DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR")
+os.environ['DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR'] = '1'
+DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR = os.getenv('DS_IPCPUT_OLD_TIMEOUT_BEHAVIOR')
 
 
-# COMMAND ----------
 # Processing node Credit_Fclty_ctam_in, type SOURCE
 # COLUMN COUNT: 182
 # Original node name CREDIT_FCLTY_CTAM_STG, link Credit_Fclty_ctam_in
 
 Credit_Fclty_ctam_in = spark.read.csv(""+STG_DIR+"/bancs/credit_fclty_ctam_"+DATA_DATE+"_"+APPL_CD+".stg", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node CRDT_DECISION_DESC, type SOURCE
 # COLUMN COUNT: 3
 # Original node name CREDT_LEAD_BUS_BANK_DECSN_CD_APPDETAILS, link CRDT_DECISION_DESC
 
 CRDT_DECISION_DESC = spark.read.csv(""+DS_DIR+"/credt_lead/master_files/credt_lead_credit_fclty_bus_bankg_decsn_cd_desc_LD.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_LEND, type SOURCE
 # COLUMN COUNT: 13
 # Original node name CREDIT_FCLTY_LEND_ARR_CD_DS, link ARSM_LEND
 
 ARSM_LEND = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_lend_arr_cd_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BANCS_INT_RATE, type SOURCE
 # COLUMN COUNT: 5
 # Original node name BANCS_INT_RATE_2, link BANCS_INT_RATE
 
 BANCS_INT_RATE = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_int_rate_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node FACM_PARENT, type SOURCE
 # COLUMN COUNT: 12
 # Original node name FCLTY_FACM_PARENT_SEQ, link FACM_PARENT
 
 FACM_PARENT = spark.read.csv(""+STG_DIR+"/bancs/bancs_fclty_parent_legal_bind.stg", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_LEND_FLAG, type SOURCE
 # COLUMN COUNT: 10
 # Original node name CREDIT_FCLTY_LEND_ARR_FLAG_DS, link ARSM_LEND_FLAG
 
 ARSM_LEND_FLAG = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_lend_arsm_shrd_cr_flag_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node evolve_laextract_ds_mjr_mod_dt_IN, type SOURCE
 # COLUMN COUNT: 2
 # Original node name EVOLV_LAEXTRACT_DS_input, link evolve_laextract_ds_mjr_mod_dt_IN
 
 evolve_laextract_ds_mjr_mod_dt_IN = spark.read.csv(""+DS_DIR+"/bancs/master_files/evolv_laextract_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BOIS_PARENT, type SOURCE
 # COLUMN COUNT: 6
 # Original node name CREDIT_FCLTY_BOIS_PARENT_DS, link BOIS_PARENT
 
 BOIS_PARENT = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_BOIS_PARENT_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node acct, type SOURCE
 # COLUMN COUNT: 3
 # Original node name CREDIT_FCLTY_INTERMEDIATE_2_BANCS_DS_1, link acct
 
 acct = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_intermediate_2_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node SALESFORCE_ID_IN, type SOURCE
 # COLUMN COUNT: 2
 # Original node name AGREE_APPL_NATL_KEY_DS, link SALESFORCE_ID_IN
 
 SALESFORCE_ID_IN = spark.read.csv(""+DS_DIR+"/credt_lead/master_files/credt_lead_credit_fclty_salesforce_id_LD.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_BANK_ROLE, type SOURCE
 # COLUMN COUNT: 17
 # Original node name CREDIT_FCLTY_ARSM_BANK_ROLE_DS, link ARSM_BANK_ROLE
 
 ARSM_BANK_ROLE = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_bank_role_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BOIS_MAST_LN_ACCT, type SOURCE
 # COLUMN COUNT: 2
 # Original node name BORM_LOAN_ACCT_DS, link BOIS_MAST_LN_ACCT
 
 BOIS_MAST_LN_ACCT = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_borm_ln_acct_acctID_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_ARRY_TYP, type SOURCE
 # COLUMN COUNT: 12
 # Original node name CREDIT_FCLTY_ARSM_ARRY_TYP, link ARSM_ARRY_TYP
 
 ARSM_ARRY_TYP = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_array_typ_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BOIS, type SOURCE
 # COLUMN COUNT: 5
 # Original node name BANCS_ACCT_FCLTY_REL_DS1, link BOIS
 
 BOIS = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_acct_fclty_rel_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node Fee_Wav, type SOURCE
 # COLUMN COUNT: 8
 # Original node name BANCS_FEE_WAV_DS, link Fee_Wav
 
 Fee_Wav = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_fee_wav_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node LNPURCHTYPDESC_IN, type SOURCE
 # COLUMN COUNT: 3
 # Original node name LNPURCHTYPDESC_DS_2, link LNPURCHTYPDESC_IN
 
 LNPURCHTYPDESC_IN = spark.read.csv(""+DS_DIR+"/ecf/lnpurchtypdesc.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node FACM_LEGAL_BIND, type SOURCE
 # COLUMN COUNT: 5
 # Original node name FCLTY_FACM_LEGAL_BIND_HASH, link FACM_LEGAL_BIND
 
 FACM_LEGAL_BIND = spark.read.csv(""+STG_DIR+"/bancs/bancs_fclty_parent_legal_bind_HASH_FILE.stg", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node RENEWAL_PREV, type SOURCE
 # COLUMN COUNT: 4
 # Original node name RENEWAL_PREV_DS, link RENEWAL_PREV
 
 RENEWAL_PREV = spark.read.csv(""+DS_DIR+"/bancs/bancs_renewal_month_ind_credit_fclty_prev_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node PORTFOLIO_CD_IN, type SOURCE
 # COLUMN COUNT: 5
 # Original node name CREDIT_LEAD_DS, link PORTFOLIO_CD_IN
 
 PORTFOLIO_CD_IN = spark.read.csv(""+DS_DIR+"/credt_lead/master_files/credt_lead_credit_fclty_portfolio_mgmt_cd_DS_LD.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node CRA_LN_TYP_DESC, type SOURCE
 # COLUMN COUNT: 2
 # Original node name ECF_NEWCRALNTYP_DS, link CRA_LN_TYP_DESC
 
 CRA_LN_TYP_DESC = spark.read.csv(""+DS_DIR+"/ecf/ecf_newcralntyp.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_LEND_BANK_ROLE_OTHERS, type SOURCE
 # COLUMN COUNT: 16
 # Original node name CREDIT_FCLTY_LEND_BANK_ROLE_OTHERS_DS, link ARSM_LEND_BANK_ROLE_OTHERS
 
 ARSM_LEND_BANK_ROLE_OTHERS = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_lend_bank_role_others_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node DSLink563, type SOURCE
 # COLUMN COUNT: 14
 # Original node name APPRO_CNSMR_PRODUCT, link DSLink563
 
 DSLink563 = spark.read.csv(""+DS_DIR+"/appro_cnsmr/master_files/appro_cnsmr_products_AC.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node evolv_ext, type TRANSFORMATION
 # COLUMN COUNT: 2
 # Original node name xfer_evolv_extract, link evolv_ext
@@ -200,81 +191,70 @@ evolv_ext = evolve_laextract_ds_mjr_mod_dt_IN.select(
 	(evolve_laextract_ds_mjr_mod_dt_IN.MAJORMODDATE .cast(date)).alias('MAJORMODDATE')
 )
 
-# COMMAND ----------
 # Processing node ARSM_SHRD_CR_FLAG, type SOURCE
 # COLUMN COUNT: 16
 # Original node name CREDIT_FCLTY_ARSM_SHRD_CR_FLAG, link ARSM_SHRD_CR_FLAG
 
 ARSM_SHRD_CR_FLAG = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_shrd_cr_flag_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node PRODUCT, type UNIQUE_ROW
 # COLUMN COUNT: 14
 # Original node name Remove_Duplicates_562, link PRODUCT
 
 PRODUCT = DSLink563.dropDuplicates(['productid'])
 
-# COMMAND ----------
 # Processing node BANCS_BDGT_SUM_1, type SOURCE
 # COLUMN COUNT: 6
 # Original node name BANCS_BDGT_SUM_DS, link BANCS_BDGT_SUM_1
 
 BANCS_BDGT_SUM_1 = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_bdgt_sum_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node DSLink559, type SOURCE
 # COLUMN COUNT: 17
 # Original node name APPRO_CNSMR_TBLAPPDETSTIPS, link DSLink559
 
 DSLink559 = spark.read.csv(""+DS_DIR+"/appro_cnsmr/master_files/appro_cnsmr_tblappdetstips_AC.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node LNPURCHTYPDESC_DS, type TRANSFORMATION
 # COLUMN COUNT: 3
 # Original node name Transformer_488, link LNPURCHTYPDESC_DS
 
 LNPURCHTYPDESC_DS = LNPURCHTYPDESC_IN.select(
-	(substring(trim(LNPURCHTYPDESC_IN.'{APPL_CD}') , lit(1) , lit(3))).alias('APPL_CD'),
+	(substring(trim(LNPURCHTYPDESC_IN.APPL_CD) , lit(1) , lit(3))).alias('APPL_CD'),
 	(substring(trim(LNPURCHTYPDESC_IN.LN_PURCH_TYP_CD) , lit(1) , lit(1))).alias('LN_PURCH_TYP_CD'),
 	(trim(LNPURCHTYPDESC_IN.LN_PURCH_TYP_DESC)).alias('LN_PURCH_TYP_DESC')
 )
 
-# COMMAND ----------
 # Processing node BORM, type SOURCE
 # COLUMN COUNT: 5
 # Original node name BANCS_ACCT_FCLTY_REL_DS, link BORM
 
 BORM = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_acct_fclty_rel_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node GRAND, type SOURCE
 # COLUMN COUNT: 5
 # Original node name BANCS_FACM_GRAND_PARENT_DS, link GRAND
 
 GRAND = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_facm_GRAND_PARENT_stg_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT, type SOURCE
 # COLUMN COUNT: 21
 # Original node name CREDIT_FCLTY_LEND_BANK_ROLE_PART_PURCH_TOT_CMMT_AMTR, link ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT
 
 ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_arsm_lend_bank_role_others_bancs_part_purch_tot_cmmt_amt_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BRONZE_FROM_APPRO, type SOURCE
 # COLUMN COUNT: 7
 # Original node name APPRO_CNSMR_TBLAPPDETCLIENTDEFINEDVALUES_APPDTEAILS_DS, link BRONZE_FROM_APPRO
 
 BRONZE_FROM_APPRO = spark.read.csv(""+DS_DIR+"/appro_cnsmr/master_files/jn_tblclientdefinedvalues_appdetails_AC.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node DS_IN, type SOURCE
 # COLUMN COUNT: 183
 # Original node name CREDIT_FCLTY_INTERMEDIATE_2_BANCS_DS, link DS_IN
 
 DS_IN = spark.read.csv(""+DS_DIR+"/bancs/credit_fclty_intermediate_2_bancs_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BORM_CONV4, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name XFM_LEGAL_BIND, link BORM_CONV4
@@ -287,7 +267,6 @@ BORM_CONV4 = FACM_LEGAL_BIND.select(
 	FACM_LEGAL_BIND.facm_legal_bind.alias('facm_legal_bind')
 )
 
-# COMMAND ----------
 # Processing node BOIS_CONV5, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name XFM_LEGAL_BIND, link BOIS_CONV5
@@ -300,42 +279,36 @@ BOIS_CONV5 = FACM_LEGAL_BIND.select(
 	FACM_LEGAL_BIND.facm_legal_bind.alias('facm_legal_bind')
 )
 
-# COMMAND ----------
 # Processing node DSLink545, type SOURCE
 # COLUMN COUNT: 361
 # Original node name APPRO_CNSMR_APPDETAILS, link DSLink545
 
 DSLink545 = spark.read.csv(""+DS_DIR+"/appro_cnsmr/master_files/appro_cnsmr_appdetails_AC.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node LVL_Out, type SOURCE
 # COLUMN COUNT: 4
 # Original node name BANCS_ACCT_LVL_CMMT_INT_DS, link LVL_Out
 
 LVL_Out = spark.read.csv(""+DS_DIR+"/bancs/master_files/bancs_acct_lvl_cmmt_int_"+APPL_CD+".ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node CREDIT_DECSN_INFO, type SOURCE
 # COLUMN COUNT: 3
 # Original node name CREDT_LEAD_CREDIT_DECSN_INFO_APPDETAILS, link CREDIT_DECSN_INFO
 
 CREDIT_DECSN_INFO = spark.read.csv(""+DS_DIR+"/credt_lead/master_files/credt_lead_credit_decsn_info_appdetails_LD.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node Credit_Fclty_facm_in, type SOURCE
 # COLUMN COUNT: 182
 # Original node name CREDIT_FCLTY_FACM_STG, link Credit_Fclty_facm_in
 
 Credit_Fclty_facm_in = spark.read.csv(""+STG_DIR+"/bancs/credit_fclty_facm_"+DATA_DATE+"_"+APPL_CD+".stg", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node LEND_ARRNG, type SOURCE
 # COLUMN COUNT: 5
 # Original node name ECF_LEND_ARRGMNTDESC_DS, link LEND_ARRNG
 
 LEND_ARRNG = spark.read.csv(""+DS_DIR+"/ecf/lendarrgmntdesc.ds", sep=',', header='false')
 
-# COMMAND ----------
 # Processing node BORM_CONV2, type TRANSFORMATION
 # COLUMN COUNT: 12
 # Original node name XFM_PARENT, link BORM_CONV2
@@ -355,7 +328,6 @@ BORM_CONV2 = FACM_PARENT.select(
 	FACM_PARENT.cusm_cur_name_agnt_bank.alias('cusm_cur_name_agnt_bank_facm')
 )
 
-# COMMAND ----------
 # Processing node BOIS_CONV3, type TRANSFORMATION
 # COLUMN COUNT: 12
 # Original node name XFM_PARENT, link BOIS_CONV3
@@ -375,7 +347,6 @@ BOIS_CONV3 = FACM_PARENT.select(
 	FACM_PARENT.cusm_cur_name_agnt_bank.alias('cusm_cur_name_agnt_bank_facm_parent')
 )
 
-# COMMAND ----------
 # Processing node XFM_IN, type TRANSFORMATION
 # COLUMN COUNT: 185
 # Original node name Xfm_Conv, link XFM_IN
@@ -399,7 +370,7 @@ XFM_IN = XFM_IN.withColumn("CoaleseBoisBorm", when((Len(trim(DS_IN.bois_mast_loa
 	DS_IN.LIEN_PSTN.alias('LIEN_PSTN'),
 	DS_IN.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	DS_IN.borm_instn_nbr.alias('borm_instn_nbr'),
-	DS_IN.'{APPL_CD}'.alias('APPL_CD'),
+	DS_IN.APPL_CD.alias('APPL_CD'),
 	DS_IN.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	DS_IN.borm_apprv_date.alias('borm_apprv_date'),
 	DS_IN.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -569,7 +540,6 @@ XFM_IN = XFM_IN.withColumn("CoaleseBoisBorm", when((Len(trim(DS_IN.bois_mast_loa
 	DS_IN.arsm_am_agent_bnk_abn_parent.alias('arsm_am_agent_bnk_abn_parent')
 )
 
-# COMMAND ----------
 # Processing node APPRO_ONE, type REPLICATE
 # COLUMN COUNT: 7
 # Original node name Copy_512, link APPRO_ONE
@@ -584,7 +554,6 @@ APPRO_ONE = BRONZE_FROM_APPRO.select(
 	BRONZE_FROM_APPRO.misc10c1
 )
 
-# COMMAND ----------
 # Processing node APPRO_TWO, type REPLICATE
 # COLUMN COUNT: 7
 # Original node name Copy_512, link APPRO_TWO
@@ -599,7 +568,6 @@ APPRO_TWO = BRONZE_FROM_APPRO.select(
 	BRONZE_FROM_APPRO.misc10c1
 )
 
-# COMMAND ----------
 # Processing node BORM_CONV6, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name XFM_GRAND, link BORM_CONV6
@@ -612,7 +580,6 @@ BORM_CONV6 = GRAND.select(
 	GRAND.facm_legal_bind.alias('facm_legal_bind')
 )
 
-# COMMAND ----------
 # Processing node BOIS_CONV7, type TRANSFORMATION
 # COLUMN COUNT: 5
 # Original node name XFM_GRAND, link BOIS_CONV7
@@ -625,19 +592,17 @@ BOIS_CONV7 = GRAND.select(
 	GRAND.facm_legal_bind.alias('facm_legal_bind')
 )
 
-# COMMAND ----------
 # Processing node PORTFOLIO_CD, type UNIQUE_ROW
 # COLUMN COUNT: 5
 # Original node name Rdp_usbo_loan_orig_id, link PORTFOLIO_CD
 
 PORTFOLIO_CD = PORTFOLIO_CD_IN.dropDuplicates(['usbo_loan_orig_id'])
 
-# COMMAND ----------
 # Processing node LKP_OUT_1, type MERGE
 # COLUMN COUNT: 215
 # Original node name Lkp, link LKP_OUT_1
 
-LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_NBR_JOIN_16], 'LEFT_OUTER').join(Fee_Wav, [Fee_Wav.csec_acct_nbr == XFM_IN.SRC_ACCT_NBR_JOIN_16], 'LEFT_OUTER').join(ARSM_BANK_ROLE, [ARSM_BANK_ROLE.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_BANK_ROLE.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_SHRD_CR_FLAG, [ARSM_SHRD_CR_FLAG.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_SHRD_CR_FLAG.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_ARRY_TYP, [ARSM_ARRY_TYP.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_ARRY_TYP.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_LEND, [ARSM_LEND.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_LEND.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_LEND_FLAG, [ARSM_LEND_FLAG.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_LEND_FLAG.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_LEND_BANK_ROLE_OTHERS, [ARSM_LEND_BANK_ROLE_OTHERS.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_LEND_BANK_ROLE_OTHERS.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(BORM, [BORM.acfr_acct_nbr == XFM_IN.borm_ln_acct_nbr_join_acfr], 'LEFT_OUTER').join(BOIS, [BOIS.acfr_acct_nbr == XFM_IN.coalese_bois_mast_loan_acct_ln_acct_nbr], 'LEFT_OUTER').join(ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT, [ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').select(
+LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_NBR_JOIN_16], 'LEFT_OUTER').join(Fee_Wav, [Fee_Wav.csec_acct_nbr == XFM_IN.SRC_ACCT_NBR_JOIN_16], 'LEFT_OUTER').join(ARSM_BANK_ROLE, [ARSM_BANK_ROLE.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_BANK_ROLE.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_SHRD_CR_FLAG, [ARSM_SHRD_CR_FLAG.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_SHRD_CR_FLAG.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_ARRY_TYP, [ARSM_ARRY_TYP.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_ARRY_TYP.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_lengthD, [ARSM_lengthD.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_lengthD.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_lengthD_FLAG, [ARSM_lengthD_FLAG.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_lengthD_FLAG.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(ARSM_lengthD_BANK_ROLE_OTHERS, [ARSM_lengthD_BANK_ROLE_OTHERS.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_lengthD_BANK_ROLE_OTHERS.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').join(BORM, [BORM.acfr_acct_nbr == XFM_IN.borm_ln_acct_nbr_join_acfr], 'LEFT_OUTER').join(BOIS, [BOIS.acfr_acct_nbr == XFM_IN.coalese_bois_mast_loan_acct_ln_acct_nbr], 'LEFT_OUTER').join(ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT, [ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.AS_OF_DT == XFM_IN.AS_OF_DT, ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.ACCT_ID == XFM_IN.ACCT_ID], 'LEFT_OUTER').select(
 	XFM_IN.ACCT_ID.alias('ACCT_ID'),
 	XFM_IN.AS_OF_DT.alias('AS_OF_DT'),
 	XFM_IN.SRC_ACCT_NBR.alias('SRC_ACCT_NBR'),
@@ -655,7 +620,7 @@ LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_N
 	XFM_IN.LIEN_PSTN.alias('LIEN_PSTN'),
 	XFM_IN.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	XFM_IN.borm_instn_nbr.alias('borm_instn_nbr'),
-	XFM_IN.'__JOBVAR_ENCLOSURE_OPEN__APPL_CD__JOBVAR_ENCLOSURE_CLOSE__'.alias('APPL_CD'),
+	XFM_IN.APPL_CD.alias('APPL_CD'),
 	XFM_IN.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	XFM_IN.borm_apprv_date.alias('borm_apprv_date'),
 	XFM_IN.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -804,24 +769,24 @@ LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_N
 	ARSM_ARRY_TYP.arsm_arr_type.alias('arsm_arr_type_multiple_arr'),
 	ARSM_ARRY_TYP.arsm_bank_role.alias('arsm_arr_typ_bank_role_multiple_arr'),
 	ARSM_ARRY_TYP.arsm_shared_cr_flag.alias('arsm_arr_typ_shared_cr_flag_multiple_arr'),
-	ARSM_LEND_FLAG.arsm_shared_cr_flag.alias('arsm_shared_cr_flag_multiple_arr_lend'),
-	ARSM_LEND.arsm_bank_role.alias('arsm_bank_role_multiple_arr_lend'),
-	ARSM_LEND.arsm_arr_type.alias('arsm_arr_type_multiple_arr_lend'),
-	ARSM_LEND.arsm_shared_cr_flag.alias('arsm_shared_cr_flag_multiple_arr_lend_final'),
+	ARSM_lengthD_FLAG.arsm_shared_cr_flag.alias('arsm_shared_cr_flag_multiple_arr_lend'),
+	ARSM_lengthD.arsm_bank_role.alias('arsm_bank_role_multiple_arr_lend'),
+	ARSM_lengthD.arsm_arr_type.alias('arsm_arr_type_multiple_arr_lend'),
+	ARSM_lengthD.arsm_shared_cr_flag.alias('arsm_shared_cr_flag_multiple_arr_lend_final'),
 	XFM_IN.usbo_loan_manag_group.alias('usbo_loan_manag_group'),
 	XFM_IN.borm_lonp_mul_bk_ledger_code_coalesce.alias('borm_lonp_mul_bk_ledger_code_coalesce'),
 	XFM_IN.borm_cas_stat_code.alias('borm_cas_stat_code'),
 	XFM_IN.borm_acct_typ.alias('borm_acct_typ'),
 	XFM_IN.borm_prod_cat.alias('borm_prod_cat'),
 	ARSM_BANK_ROLE.aral_arr_prod_code.alias('aral_arr_prod_code_bank_role_multiple_arr'),
-	ARSM_LEND.aral_arr_prod_code.alias('aral_arr_prod_code_bank_role_lend'),
-	ARSM_LEND_BANK_ROLE_OTHERS.arsm_bank_role.alias('arsm_bank_role_multiple_arr_others'),
-	ARSM_LEND_BANK_ROLE_OTHERS.arsm_share_per.alias('arsm_share_per_multiple_arr_others'),
-	ARSM_LEND_BANK_ROLE_OTHERS.arsm_total_limit_amt.alias('arsm_total_limit_amt_multiple_arr_others'),
+	ARSM_lengthD.aral_arr_prod_code.alias('aral_arr_prod_code_bank_role_lend'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.arsm_bank_role.alias('arsm_bank_role_multiple_arr_others'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.arsm_share_per.alias('arsm_share_per_multiple_arr_others'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.arsm_total_limit_amt.alias('arsm_total_limit_amt_multiple_arr_others'),
 	XFM_IN.bois_pre_pen_method.alias('bois_pre_pen_method'),
-	ARSM_LEND_BANK_ROLE_OTHERS.arml_mem_bank_role.alias('arml_mem_bank_role_multiple_arr_others'),
-	ARSM_LEND_BANK_ROLE_OTHERS.cusm_cur_name.alias('cusm_cur_name_multiple_arr_others'),
-	ARSM_LEND_BANK_ROLE_OTHERS.arml_cnt_party_nbr.alias('arml_cnt_party_nbr_multiple_arr_others'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.arml_mem_bank_role.alias('arml_mem_bank_role_multiple_arr_others'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.cusm_cur_name.alias('cusm_cur_name_multiple_arr_others'),
+	ARSM_lengthD_BANK_ROLE_OTHERS.arml_cnt_party_nbr.alias('arml_cnt_party_nbr_multiple_arr_others'),
 	BORM.acfr_instn_nbr.alias('acfr_instn_nbr_BORM'),
 	BORM.acfr_acct_nbr.alias('acfr_acct_nbr_BORM'),
 	BOIS.acfr_instn_nbr.alias('acfr_instn_nbr_BOIS'),
@@ -838,9 +803,9 @@ LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_N
 	XFM_IN.usbo_purchased_code.alias('usbo_purchased_code'),
 	XFM_IN.usbo_purch_dt.alias('usbo_purch_dt'),
 	XFM_IN.bois_pred_loan_no.alias('bois_pred_loan_no'),
-	ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_bank_role.alias('arsm_bank_role_multiple_arr_others_part_purch_tot_cmmt_amt'),
-	ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_share_per.alias('arsm_share_per_multiple_arr_others_part_purch_tot_cmmt_amt'),
-	ARSM_LEND_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_total_limit_amt.alias('arsm_total_limit_amt_multiple_arr_others_part_purch_tot_cmmt_amt'),
+	ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_bank_role.alias('arsm_bank_role_multiple_arr_others_part_purch_tot_cmmt_amt'),
+	ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_share_per.alias('arsm_share_per_multiple_arr_others_part_purch_tot_cmmt_amt'),
+	ARSM_lengthD_BANK_ROLE_OTHERS_PART_PURCH_TOT_CMMT_AMT.arsm_total_limit_amt.alias('arsm_total_limit_amt_multiple_arr_others_part_purch_tot_cmmt_amt'),
 	XFM_IN.borm_hfis_flag.alias('borm_hfis_flag'),
 	XFM_IN.brlm_bor_base_amt.alias('brlm_bor_base_amt'),
 	XFM_IN.brlm_effect_lim.alias('brlm_effect_lim'),
@@ -855,21 +820,18 @@ LKP_OUT_1 = XFM_IN.join(LVL_Out, [LVL_Out.acom_loc_acct_nbr == XFM_IN.SRC_ACCT_N
 	XFM_IN.arsm_am_agent_bnk_abn_parent.alias('arsm_am_agent_bnk_abn_parent')
 )
 
-# COMMAND ----------
 # Processing node APPDETSTIPS, type UNIQUE_ROW
 # COLUMN COUNT: 17
 # Original node name Remove_Duplicates_558, link APPDETSTIPS
 
 APPDETSTIPS = DSLink559.dropDuplicates(['appid', 'appdetailid'])
 
-# COMMAND ----------
 # Processing node BANCS_BDGT_SUM, type UNIQUE_ROW
 # COLUMN COUNT: 6
 # Original node name Rdp, link BANCS_BDGT_SUM
 
 BANCS_BDGT_SUM = BANCS_BDGT_SUM_1.dropDuplicates(['bgsm_instn_nbr', 'bgsm_ln_acct_nbr'])
 
-# COMMAND ----------
 # Processing node DSLink529, type TRANSFORMATION
 # COLUMN COUNT: 4
 # Original node name Transformer_527, link DSLink529
@@ -881,7 +843,6 @@ DSLink529 = DSLink545.select(
 	(DSLink545.appid + lit(' ') + DSLink545.appdetailid).alias('app_sys_acct_nbr')
 )
 
-# COMMAND ----------
 # Processing node LKP_OUT1, type MERGE
 # COLUMN COUNT: 237
 # Original node name LKP_FACM, link LKP_OUT1
@@ -904,7 +865,7 @@ LKP_OUT1 = LKP_OUT_1.join(BOIS_CONV3, [BOIS_CONV3.facm_instn_nbr_BOIS == LKP_OUT
 	LKP_OUT_1.LIEN_PSTN.alias('LIEN_PSTN'),
 	LKP_OUT_1.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	LKP_OUT_1.borm_instn_nbr.alias('borm_instn_nbr'),
-	LKP_OUT_1.'__JOBVAR_ENCLOSURE_OPEN__APPL_CD__JOBVAR_ENCLOSURE_CLOSE__'.alias('APPL_CD'),
+	LKP_OUT_1.APPL_CD.alias('APPL_CD'),
 	LKP_OUT_1.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	LKP_OUT_1.borm_apprv_date.alias('borm_apprv_date'),
 	LKP_OUT_1.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -1126,7 +1087,6 @@ LKP_OUT1 = LKP_OUT_1.join(BOIS_CONV3, [BOIS_CONV3.facm_instn_nbr_BOIS == LKP_OUT
 	BORM.cusm_cur_name_agnt_bank_facm.alias('cusm_cur_name_agnt_bank_facm')
 )
 
-# COMMAND ----------
 # Processing node LKP_OUT_CONV2, type MERGE
 # COLUMN COUNT: 244
 # Original node name LKP_GRAND_PARENT, link LKP_OUT_CONV2
@@ -1149,7 +1109,7 @@ LKP_OUT_CONV2 = LKP_OUT1.join(BORM_CONV6, [BORM_CONV6.facm_fclty_nbr == LKP_OUT1
 	LKP_OUT1.LIEN_PSTN.alias('LIEN_PSTN'),
 	LKP_OUT1.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	LKP_OUT1.borm_instn_nbr.alias('borm_instn_nbr'),
-	LKP_OUT1.'__JOBVAR_ENCLOSURE_OPEN__APPL_CD__JOBVAR_ENCLOSURE_CLOSE__'.alias('APPL_CD'),
+	LKP_OUT1.APPL_CD.alias('APPL_CD'),
 	LKP_OUT1.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	LKP_OUT1.borm_apprv_date.alias('borm_apprv_date'),
 	LKP_OUT1.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -1378,7 +1338,6 @@ LKP_OUT_CONV2 = LKP_OUT1.join(BORM_CONV6, [BORM_CONV6.facm_fclty_nbr == LKP_OUT1
 	LKP_OUT1.cusm_cur_name_agnt_bank_facm.alias('cusm_cur_name_agnt_bank_facm')
 )
 
-# COMMAND ----------
 # Processing node Xfm_lend_out, type TRANSFORMATION
 # COLUMN COUNT: 235
 # Original node name Xfm_LEND, link Xfm_lend_out
@@ -1401,7 +1360,7 @@ Xfm_lend_out = LKP_OUT_CONV2.select(
 	LKP_OUT.LIEN_PSTN.alias('LIEN_PSTN'),
 	LKP_OUT.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	LKP_OUT.borm_instn_nbr.alias('borm_instn_nbr'),
-	LKP_OUT.'{APPL_CD}'.alias('APPL_CD'),
+	LKP_OUT.APPL_CD.alias('APPL_CD'),
 	LKP_OUT.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	LKP_OUT.borm_apprv_date.alias('borm_apprv_date'),
 	LKP_OUT.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -1621,12 +1580,11 @@ Xfm_lend_out = LKP_OUT_CONV2.select(
 	LKP_OUT.cusm_cur_name_agnt_bank_facm.alias('cusm_cur_name_agnt_bank_facm')
 )
 
-# COMMAND ----------
 # Processing node LKP_OUT, type MERGE
 # COLUMN COUNT: 239
 # Original node name Lkp_LEND, link LKP_OUT
 
-LKP_OUT = Xfm_lend_out.join(LEND_ARRNG, [LEND_ARRNG.arsm_bank_role == Xfm_lend_out.arsm_bank_role_lend_cd, LEND_ARRNG.arsm_arr_type == Xfm_lend_out.arsm_arr_type_lend_cd, LEND_ARRNG.arsm_shared_cr_flag == Xfm_lend_out.arsm_shared_cr_flag_lend_cd], 'LEFT_OUTER').join(BORM_CONV4, [BORM_CONV4.facm_fclty_nbr_BORM_LEGAL == Xfm_lend_out.facm_fclty_nbr_BORM, BORM_CONV4.facm_instn_nbr_BORM_LEGAL == Xfm_lend_out.facm_instn_nbr_BORM], 'LEFT_OUTER').join(BOIS_CONV5, [BOIS_CONV5.facm_instn_nbr_BOIS_LEGAL == Xfm_lend_out.facm_instn_nbr_BOIS, BOIS_CONV5.facm_fclty_nbr_BOIS_LEGAL == Xfm_lend_out.facm_fclty_nbr_BOIS], 'LEFT_OUTER').join(BOIS_MAST_LN_ACCT, [BOIS_MAST_LN_ACCT.borm_ln_acct_nbr_BOIS_CUPA == Xfm_lend_out.coalese_bois_mast_loan_acct_ln_acct_nbr], 'LEFT_OUTER').join(BANCS_BDGT_SUM, [BANCS_BDGT_SUM.bgsm_instn_nbr == Xfm_lend_out.borm_instn_nbr, BANCS_BDGT_SUM.bgsm_ln_acct_nbr == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').join(BANCS_INT_RATE, [BANCS_INT_RATE.int_rate_ze_instn_nbr == Xfm_lend_out.borm_instn_nbr, BANCS_INT_RATE.int_rate_ze_ln_acct_nbr == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').join(RENEWAL_PREV, [RENEWAL_PREV.BORM_LN_ACCT_NBR == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').select(
+LKP_OUT = Xfm_lend_out.join(lengthD_ARRNG, [lengthD_ARRNG.arsm_bank_role == Xfm_lend_out.arsm_bank_role_lend_cd, lengthD_ARRNG.arsm_arr_type == Xfm_lend_out.arsm_arr_type_lend_cd, lengthD_ARRNG.arsm_shared_cr_flag == Xfm_lend_out.arsm_shared_cr_flag_lend_cd], 'LEFT_OUTER').join(BORM_CONV4, [BORM_CONV4.facm_fclty_nbr_BORM_LEGAL == Xfm_lend_out.facm_fclty_nbr_BORM, BORM_CONV4.facm_instn_nbr_BORM_LEGAL == Xfm_lend_out.facm_instn_nbr_BORM], 'LEFT_OUTER').join(BOIS_CONV5, [BOIS_CONV5.facm_instn_nbr_BOIS_LEGAL == Xfm_lend_out.facm_instn_nbr_BOIS, BOIS_CONV5.facm_fclty_nbr_BOIS_LEGAL == Xfm_lend_out.facm_fclty_nbr_BOIS], 'LEFT_OUTER').join(BOIS_MAST_LN_ACCT, [BOIS_MAST_LN_ACCT.borm_ln_acct_nbr_BOIS_CUPA == Xfm_lend_out.coalese_bois_mast_loan_acct_ln_acct_nbr], 'LEFT_OUTER').join(BANCS_BDGT_SUM, [BANCS_BDGT_SUM.bgsm_instn_nbr == Xfm_lend_out.borm_instn_nbr, BANCS_BDGT_SUM.bgsm_ln_acct_nbr == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').join(BANCS_INT_RATE, [BANCS_INT_RATE.int_rate_ze_instn_nbr == Xfm_lend_out.borm_instn_nbr, BANCS_INT_RATE.int_rate_ze_ln_acct_nbr == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').join(RENEWAL_PREV, [RENEWAL_PREV.BORM_LN_ACCT_NBR == Xfm_lend_out.borm_ln_acct_nbr], 'LEFT_OUTER').select(
 	Xfm_lend_out.ACCT_ID.alias('ACCT_ID'),
 	Xfm_lend_out.AS_OF_DT.alias('AS_OF_DT'),
 	Xfm_lend_out.SRC_ACCT_NBR.alias('SRC_ACCT_NBR'),
@@ -1644,7 +1602,7 @@ LKP_OUT = Xfm_lend_out.join(LEND_ARRNG, [LEND_ARRNG.arsm_bank_role == Xfm_lend_o
 	Xfm_lend_out.LIEN_PSTN.alias('LIEN_PSTN'),
 	Xfm_lend_out.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	Xfm_lend_out.borm_instn_nbr.alias('borm_instn_nbr'),
-	Xfm_lend_out.'__JOBVAR_ENCLOSURE_OPEN__APPL_CD__JOBVAR_ENCLOSURE_CLOSE__'.alias('APPL_CD'),
+	Xfm_lend_out.APPL_CD.alias('APPL_CD'),
 	Xfm_lend_out.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	Xfm_lend_out.borm_apprv_date.alias('borm_apprv_date'),
 	Xfm_lend_out.bois_mast_loan_acct.alias('bois_mast_loan_acct'),
@@ -1788,8 +1746,8 @@ LKP_OUT = Xfm_lend_out.join(LEND_ARRNG, [LEND_ARRNG.arsm_bank_role == Xfm_lend_o
 	Xfm_lend_out.arsm_bank_role_multiple_arr.alias('arsm_bank_role_multiple_arr'),
 	Xfm_lend_out.arsm_shared_cr_flag_multiple_arr.alias('arsm_shared_cr_flag_multiple_arr'),
 	Xfm_lend_out.arsm_arr_type_multiple_arr.alias('arsm_arr_type_multiple_arr'),
-	LEND_ARRNG.lend_arrangement_cd.alias('lend_arrangement_cd_multiple_arr'),
-	LEND_ARRNG.lend_arrangement_desc.alias('lend_arrangement_desc_multiple_arr'),
+	lengthD_ARRNG.lend_arrangement_cd.alias('lend_arrangement_cd_multiple_arr'),
+	lengthD_ARRNG.lend_arrangement_desc.alias('lend_arrangement_desc_multiple_arr'),
 	Xfm_lend_out.usbo_loan_manag_group.alias('usbo_loan_manag_group'),
 	Xfm_lend_out.borm_lonp_mul_bk_ledger_code_coalesce.alias('borm_lonp_mul_bk_ledger_code_coalesce'),
 	Xfm_lend_out.borm_cas_stat_code.alias('borm_cas_stat_code'),
@@ -1868,7 +1826,6 @@ LKP_OUT = Xfm_lend_out.join(LEND_ARRNG, [LEND_ARRNG.arsm_bank_role == Xfm_lend_o
 	Xfm_lend_out.cusm_cur_name_agnt_bank_facm.alias('cusm_cur_name_agnt_bank_facm')
 )
 
-# COMMAND ----------
 # Processing node REJECTS, type TRANSFORMATION
 # COLUMN COUNT: 9
 # Original node name Xfm, link REJECTS
@@ -1934,13 +1891,12 @@ REJECTS = REJECTS.withColumn("SvAgntBankName", when((SvAgentBankName IS NOT None
 	LKP_OUT.NATL_KEY.alias('NATL_KEY'),
 	LKP_OUT.borm_ln_acct_nbr.alias('borm_ln_acct_nbr'),
 	LKP_OUT.borm_instn_nbr.alias('borm_instn_nbr'),
-	LKP_OUT.'{APPL_CD}'.alias('APPL_CD'),
+	LKP_OUT.APPL_CD.alias('APPL_CD'),
 	LKP_OUT.borm_mul_bk_ledger_code.alias('borm_mul_bk_ledger_code'),
 	LKP_OUT.borm_apprv_date.alias('borm_apprv_date'),
 	LKP_OUT.bois_mast_loan_acct.alias('bois_mast_loan_acct')
 ).filter("REJECTED")
 
-# COMMAND ----------
 # Processing node PASS_3, type TRANSFORMATION
 # COLUMN COUNT: 186
 # Original node name Xfm, link PASS_3
@@ -2003,7 +1959,7 @@ PASS_3 = PASS_3.withColumn("SvAgentBankNameFacmParent", when(((LKP_OUT.arsm_am_a
 PASS_3 = PASS_3.withColumn("SvAgntBankName", when((SvAgentBankName IS NOT None , SvAgentBankName , when((SvAgentBankNameParent IS NOT None , SvAgentBankNameParent ).otherwise(when((SvAgentBankNameFacm IS NOT None )).otherwise((SvAgentBankNameFacm ))).otherwise((IFF(SvAgentBankNameFacmParent IS NOT None ))).otherwise((SvAgentBankNameFacmParent )).otherwise(None))))).select(
 	LKP_OUT.ACCT_ID.alias('ACCT_ID'),
 	LKP_OUT.AS_OF_DT.alias('AS_OF_DT'),
-	LKP_OUT.'{APPL_CD}'.alias('APPL_CD'),
+	LKP_OUT.APPL_CD.alias('APPL_CD'),
 	(when(((Len(trim(LKP_OUT.bois_child_loan_type)) > lit(0)) |(LKP_OUT.bois_child_loan_type IS NOT None) , lit('S') ).otherwise(IFF((Len(trim(LKP_OUT.acfr_acct_nbr)) > lit(0)) &(LKP_OUT.acfr_acct_nbr != lit(' 0000000000000000.')) )).otherwise((lit('L') )).otherwise(lit('B')))).alias('CREDIT_FCLTY_TYP'),
 	LKP_OUT.OrigLnAmt.alias('ORIG_LN_AMT'),
 	(when((LKP_OUT.CF_CUR_LN_AMT == None ),(lit(0) )).otherwise(LKP_OUT.CF_CUR_LN_AMT)).alias('CUR_LN_AMT'),
@@ -2189,7 +2145,6 @@ PASS_3 = PASS_3.withColumn("SvAgntBankName", when((SvAgentBankName IS NOT None ,
 	LKP_OUT.bois_frb_plg_inel.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 ).filter("Trim(ACCT_ID) > 0")
 
-# COMMAND ----------
 # Processing node CRD_FCLTY_REVOLV_IND_OUT, type TRANSFORMATION
 # COLUMN COUNT: 2
 # Original node name Xfm, link CRD_FCLTY_REVOLV_IND_OUT
@@ -2254,7 +2209,6 @@ CRD_FCLTY_REVOLV_IND_OUT = CRD_FCLTY_REVOLV_IND_OUT.withColumn("SvAgntBankName",
 	(when(((trim(LKP_OUT.bois_loc_type) == lit('2')) |(trim(LKP_OUT.bois_loc_type) == lit('4')) |(Len(trim(LKP_OUT.bois_loc_type)) == lit(0)) , lit('N') ).otherwise(when((trim(LKP_OUT.bois_loc_type) == lit('3') ).otherwise(lit('R') ).otherwise(when(((trim(LKP_OUT.bois_loc_type) == lit('1')) &(LKP_OUT.brlm_draw_pd_exp_date < LKP_OUT.AS_OF_DT) )).otherwise((lit('N') ))).otherwise((IFF((trim(LKP_OUT.bois_loc_type) == lit('1')) &((LKP_OUT.brlm_draw_pd_exp_date == None) |(LKP_OUT.brlm_draw_pd_exp_date >= LKP_OUT.AS_OF_DT)) ))).otherwise((lit('R') )).otherwise(lit('N')))))).alias('REVOLVING_IND')
 ).filter("Trim(ACCT_ID) > 0")
 
-# COMMAND ----------
 # Processing node CUR_DS, type TRANSFORMATION
 # COLUMN COUNT: 4
 # Original node name Xfm, link CUR_DS
@@ -2321,31 +2275,24 @@ CUR_DS = CUR_DS.withColumn("SvAgntBankName", when((SvAgentBankName IS NOT None ,
 	LKP_OUT.BkrptDt.alias('BKRPT_DT')
 )
 
-# COMMAND ----------
 # Processing node CREDIT_FCLTY_BANCS_CUR_REJ, type TARGET
 # COLUMN COUNT: 9
 
 CREDIT_FCLTY_BANCS_CUR_REJ = REJECTS.select('*')
-spark.sql('drop table if exists CREDIT_FCLTY_BANCS_CUR_REJ')
-SA_CUSTOMER_DS.write.saveAsTable(CREDIT_FCLTY_BANCS_CUR_REJ)
+CREDIT_FCLTY_BANCS_CUR_REJ.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('REJECT_DIR')}/bancs/credit_fclty_bancs_cur{getArgument('APPL_CD')}.rej')
 
-# COMMAND ----------
 # Processing node CRD_FCLTY_REVOLV_IND, type TARGET
 # COLUMN COUNT: 2
 
 CRD_FCLTY_REVOLV_IND = CRD_FCLTY_REVOLV_IND_OUT.select('*')
-spark.sql('drop table if exists CRD_FCLTY_REVOLV_IND')
-SA_CUSTOMER_DS.write.saveAsTable(CRD_FCLTY_REVOLV_IND)
+CRD_FCLTY_REVOLV_IND.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('DS_DIR')}/bancs/CRD_FCLTY_REVOLV_IND.ds')
 
-# COMMAND ----------
 # Processing node CREDIT_FCLTY_BN_ORIG_FIELDS_CURR, type TARGET
 # COLUMN COUNT: 4
 
 CREDIT_FCLTY_BN_ORIG_FIELDS_CURR = CUR_DS.select('*')
-spark.sql('drop table if exists CREDIT_FCLTY_BN_ORIG_FIELDS_CURR')
-SA_CUSTOMER_DS.write.saveAsTable(CREDIT_FCLTY_BN_ORIG_FIELDS_CURR)
+CREDIT_FCLTY_BN_ORIG_FIELDS_CURR.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('DS_DIR')}/bancs/credit_fclty_{getArgument('APPL_CD')}_orig_fields_curr{getArgument('APPL_CD')}.ds')
 
-# COMMAND ----------
 # Processing node PASS_4, type REPLICATE
 # COLUMN COUNT: 186
 # Original node name Cp, link PASS_4
@@ -2539,7 +2486,6 @@ PASS_4 = PASS_3.select(
 	PASS_3.FRB_FHLB_ELIG_PLEDGE_CD
 )
 
-# COMMAND ----------
 # Processing node PASS_5, type TRANSFORMATION
 # COLUMN COUNT: 185
 # Original node name BASIC_Xfm, link PASS_5
@@ -2548,7 +2494,7 @@ PASS_5 = PASS_4
 PASS_5 = PASS_5.withColumn("CollCdRtnIn", when((Len(trim(PASS_4.COLL_CD)) > lit(0) ),(PASS_4.COLL_CD )).otherwise(lit('0001'))).select(
 	PASS_4.ACCT_ID.alias('ACCT_ID'),
 	PASS_4.AS_OF_DT.alias('AS_OF_DT'),
-	PASS_4.'{APPL_CD}'.alias('APPL_CD'),
+	PASS_4.APPL_CD.alias('APPL_CD'),
 	PASS_4.CREDIT_FCLTY_TYP.alias('CREDIT_FCLTY_TYP'),
 	PASS_4.ORIG_LN_AMT.alias('ORIG_LN_AMT'),
 	PASS_4.CUR_LN_AMT.alias('CUR_LN_AMT'),
@@ -2696,7 +2642,7 @@ PASS_5 = PASS_5.withColumn("CollCdRtnIn", when((Len(trim(PASS_4.COLL_CD)) > lit(
 	PASS_4.PART_SNC_RPT_IND.alias('PART_SNC_RPT_IND'),
 	PASS_4.REG_W_CD.alias('REG_W_CD'),
 	PASS_4.CUPA_ID.alias('CUPA_ID'),
-	(when((Len(trim(PASS_4.FRY14_CAT_CD)) > lit(0) , PASS_4.FRY14_CAT_CD , GetFryCatCd(PASS_4.'{APPL_CD}' , PASS_4.SRC_BANK_NBR , PASS_4.PROD_CD , CollCdRtnIn ),(PASS_4.RISK_CLASS_CD_LKP )).otherwise(PASS_4.REG_BANK_SHR_EXP_AMT))).alias('FRY14_CAT_CD'),
+	(when((Len(trim(PASS_4.FRY14_CAT_CD)) > lit(0) , PASS_4.FRY14_CAT_CD , GetFryCatCd(PASS_4.APPL_CD , PASS_4.SRC_BANK_NBR , PASS_4.PROD_CD , CollCdRtnIn ),(PASS_4.RISK_CLASS_CD_LKP )).otherwise(PASS_4.REG_BANK_SHR_EXP_AMT))).alias('FRY14_CAT_CD'),
 	PASS_4.QRM_SEG_CD.alias('QRM_SEG_CD'),
 	PASS_4.QRM_SEG_DESC.alias('QRM_SEG_DESC'),
 	PASS_4.REG_AT_RISK_IND.alias('REG_AT_RISK_IND'),
@@ -2733,12 +2679,11 @@ PASS_5 = PASS_5.withColumn("CollCdRtnIn", when((Len(trim(PASS_4.COLL_CD)) > lit(
 	PASS_4.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 ).filter("Trim(ACCT_ID) > 0")
 
-# COMMAND ----------
 # Processing node SEQ_OUT, type MERGE
 # COLUMN COUNT: 192
 # Original node name Lkp_1, link SEQ_OUT
 
-SEQ_OUT = PASS_5.join(CRA_LN_TYP_DESC, [CRA_LN_TYP_DESC.IN_1 == PASS_5.CRA_LN_TYP], 'LEFT_OUTER').join(PORTFOLIO_CD, [PORTFOLIO_CD.usbo_loan_orig_id == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(LNPURCHTYPDESC_DS, [LNPURCHTYPDESC_DS.LN_PURCH_TYP_CD == PASS_5.usbo_purchased_code, LNPURCHTYPDESC_DS.APPL_CD == PASS_5.'__JOBVAR_ENCLOSURE_OPEN__APPL_CD__JOBVAR_ENCLOSURE_CLOSE__'], 'LEFT_OUTER').join(SALESFORCE_ID_IN, [SALESFORCE_ID_IN.usbo_loan_orig_id == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(CREDIT_DECSN_INFO, [CREDIT_DECSN_INFO.FIN_TXN_NBR == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(APPRO_ONE, [APPRO_ONE.ln_orig_nbr == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(APPRO_TWO, [APPRO_TWO.ln_orig_nbr2 == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(CRDT_DECISION_DESC, [CRDT_DECISION_DESC.LN_ORIG_SYS_ACCT_NBR == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(DSLink529, [DSLink529.app_sys_acct_nbr == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').select(
+SEQ_OUT = PASS_5.join(CRA_LN_TYP_DESC, [CRA_LN_TYP_DESC.IN_1 == PASS_5.CRA_LN_TYP], 'LEFT_OUTER').join(PORTFOLIO_CD, [PORTFOLIO_CD.usbo_loan_orig_id == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(LNPURCHTYPDESC_DS, [LNPURCHTYPDESC_DS.LN_PURCH_TYP_CD == PASS_5.usbo_purchased_code, LNPURCHTYPDESC_DS.APPL_CD == PASS_5.APPL_CD], 'LEFT_OUTER').join(SALESFORCE_ID_IN, [SALESFORCE_ID_IN.usbo_loan_orig_id == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(CREDIT_DECSN_INFO, [CREDIT_DECSN_INFO.FIN_TXN_NBR == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(APPRO_ONE, [APPRO_ONE.ln_orig_nbr == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(APPRO_TWO, [APPRO_TWO.ln_orig_nbr2 == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(CRDT_DECISION_DESC, [CRDT_DECISION_DESC.LN_ORIG_SYS_ACCT_NBR == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').join(DSLink529, [DSLink529.app_sys_acct_nbr == PASS_5.LN_ORIG_SYS_ACCT_NBR], 'LEFT_OUTER').select(
 	PASS_5.ACCT_ID.alias('ACCT_ID'),
 	PASS_5.AS_OF_DT.alias('AS_OF_DT'),
 	PASS_5.CREDIT_FCLTY_TYP.alias('CREDIT_FCLTY_TYP'),
@@ -2811,7 +2756,7 @@ SEQ_OUT = PASS_5.join(CRA_LN_TYP_DESC, [CRA_LN_TYP_DESC.IN_1 == PASS_5.CRA_LN_TY
 	PASS_5.SHRD_NTNL_CREDIT_IND.alias('SHRD_NTNL_CREDIT_IND'),
 	PASS_5.LN_PROG_CD.alias('LN_PROG_CD'),
 	PASS_5.SYNDICATED_IND.alias('SYNDICATED_IND'),
-	PASS_5.ENTPRS_LEVERAGE_LEND_CD.alias('ENTPRS_LEVERAGE_LEND_CD'),
+	PASS_5.ENTPRS_LEVERAGE_lengthD_CD.alias('ENTPRS_LEVERAGE_lengthD_CD'),
 	PASS_5.TAX_FREE_IND.alias('TAX_FREE_IND'),
 	PASS_5.CMMT_DRAW_IND.alias('CMMT_DRAW_IND'),
 	PASS_5.CMMT_OWN_PCT.alias('CMMT_OWN_PCT'),
@@ -2892,8 +2837,8 @@ SEQ_OUT = PASS_5.join(CRA_LN_TYP_DESC, [CRA_LN_TYP_DESC.IN_1 == PASS_5.CRA_LN_TY
 	PASS_5.REG_AT_RISK_IND.alias('REG_AT_RISK_IND'),
 	PASS_5.INT_RATE_CLNG_INITL_PRD_PCT.alias('INT_RATE_CLNG_INITL_PRD_PCT'),
 	PASS_5.LN_UNUSD_AMT_FEE_RATE.alias('LN_UNUSD_AMT_FEE_RATE'),
-	PASS_5.LEND_ARRANGEMENT_CD.alias('LEND_ARRANGEMENT_CD'),
-	PASS_5.LEND_ARRANGEMENT_DESC.alias('LEND_ARRANGEMENT_DESC'),
+	PASS_5.lengthD_ARRANGEMENT_CD.alias('lengthD_ARRANGEMENT_CD'),
+	PASS_5.lengthD_ARRANGEMENT_DESC.alias('lengthD_ARRANGEMENT_DESC'),
 	PASS_5.LEASE_RISK_MGMT_CC_NBR.alias('LEASE_RISK_MGMT_CC_NBR'),
 	PASS_5.MUNI_RISK_WT_PCT.alias('MUNI_RISK_WT_PCT'),
 	PASS_5.PR_APPL_CD.alias('PR_APPL_CD'),
@@ -2933,7 +2878,6 @@ SEQ_OUT = PASS_5.join(CRA_LN_TYP_DESC, [CRA_LN_TYP_DESC.IN_1 == PASS_5.CRA_LN_TY
 	PASS_5.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node LKP_529_Out, type MERGE
 # COLUMN COUNT: 194
 # Original node name Lookup_529, link LKP_529_Out
@@ -3011,7 +2955,7 @@ LKP_529_Out = SEQ_OUT.join(APPDETSTIPS, [APPDETSTIPS.appid == SEQ_OUT.appid, APP
 	SEQ_OUT.SHRD_NTNL_CREDIT_IND.alias('SHRD_NTNL_CREDIT_IND'),
 	SEQ_OUT.LN_PROG_CD.alias('LN_PROG_CD'),
 	SEQ_OUT.SYNDICATED_IND.alias('SYNDICATED_IND'),
-	SEQ_OUT.ENTPRS_LEVERAGE_LEND_CD.alias('ENTPRS_LEVERAGE_LEND_CD'),
+	SEQ_OUT.ENTPRS_LEVERAGE_lengthD_CD.alias('ENTPRS_LEVERAGE_lengthD_CD'),
 	SEQ_OUT.TAX_FREE_IND.alias('TAX_FREE_IND'),
 	SEQ_OUT.CMMT_DRAW_IND.alias('CMMT_DRAW_IND'),
 	SEQ_OUT.CMMT_OWN_PCT.alias('CMMT_OWN_PCT'),
@@ -3092,8 +3036,8 @@ LKP_529_Out = SEQ_OUT.join(APPDETSTIPS, [APPDETSTIPS.appid == SEQ_OUT.appid, APP
 	SEQ_OUT.REG_AT_RISK_IND.alias('REG_AT_RISK_IND'),
 	SEQ_OUT.INT_RATE_CLNG_INITL_PRD_PCT.alias('INT_RATE_CLNG_INITL_PRD_PCT'),
 	SEQ_OUT.LN_UNUSD_AMT_FEE_RATE.alias('LN_UNUSD_AMT_FEE_RATE'),
-	SEQ_OUT.LEND_ARRANGEMENT_CD.alias('LEND_ARRANGEMENT_CD'),
-	SEQ_OUT.LEND_ARRANGEMENT_DESC.alias('LEND_ARRANGEMENT_DESC'),
+	SEQ_OUT.lengthD_ARRANGEMENT_CD.alias('lengthD_ARRANGEMENT_CD'),
+	SEQ_OUT.lengthD_ARRANGEMENT_DESC.alias('lengthD_ARRANGEMENT_DESC'),
 	SEQ_OUT.LEASE_RISK_MGMT_CC_NBR.alias('LEASE_RISK_MGMT_CC_NBR'),
 	SEQ_OUT.MUNI_RISK_WT_PCT.alias('MUNI_RISK_WT_PCT'),
 	SEQ_OUT.PR_APPL_CD.alias('PR_APPL_CD'),
@@ -3135,7 +3079,6 @@ LKP_529_Out = SEQ_OUT.join(APPDETSTIPS, [APPDETSTIPS.appid == SEQ_OUT.appid, APP
 	SEQ_OUT.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node SEQ_OUT1_CONV3, type TRANSFORMATION
 # COLUMN COUNT: 186
 # Original node name Transformer_530, link SEQ_OUT1_CONV3
@@ -3329,7 +3272,6 @@ SEQ_OUT1_CONV3 = LKP_529_Out.select(
 	LKP_529_Out.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node SEQ_OUT_CONV4, type TRANSFORMATION
 # COLUMN COUNT: 182
 # Original node name Xfm_1, link SEQ_OUT_CONV4
@@ -3519,7 +3461,6 @@ SEQ_OUT_CONV4 = SEQ_OUT1_CONV3.select(
 	SEQ_OUT1.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node RENEWAL, type TRANSFORMATION
 # COLUMN COUNT: 4
 # Original node name Xfm_1, link RENEWAL
@@ -3531,7 +3472,6 @@ RENEWAL = SEQ_OUT1_CONV3.select(
 	SEQ_OUT1.RNWL_PRCS_THIS_MTH_IND.alias('RNWL_PRCS_THIS_MTH_IND')
 )
 
-# COMMAND ----------
 # Processing node SEQ_OUT2, type TRANSFORMATION
 # COLUMN COUNT: 182
 # Original node name Xfm_1, link SEQ_OUT2
@@ -3721,23 +3661,18 @@ SEQ_OUT2 = SEQ_OUT1_CONV3.select(
 	SEQ_OUT1.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node CREDIT_FCLTY_BANCS_LEVEL_03, type TARGET
 # COLUMN COUNT: 182
 
 CREDIT_FCLTY_BANCS_LEVEL_03 = SEQ_OUT2.select('*')
-spark.sql('drop table if exists CREDIT_FCLTY_BANCS_LEVEL_03')
-SA_CUSTOMER_DS.write.saveAsTable(CREDIT_FCLTY_BANCS_LEVEL_03)
+CREDIT_FCLTY_BANCS_LEVEL_03.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('DS_DIR')}/bancs/credit_fclty_bancs_level_03_{getArgument('APPL_CD')}.ds')
 
-# COMMAND ----------
 # Processing node RENEWAL_MONTH_CURR_DS, type TARGET
 # COLUMN COUNT: 4
 
 RENEWAL_MONTH_CURR_DS = RENEWAL.select('*')
-spark.sql('drop table if exists RENEWAL_MONTH_CURR_DS')
-SA_CUSTOMER_DS.write.saveAsTable(RENEWAL_MONTH_CURR_DS)
+RENEWAL_MONTH_CURR_DS.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('DS_DIR')}/bancs/bancs_renewal_month_ind_credit_fclty_curr_{getArgument('APPL_CD')}.ds')
 
-# COMMAND ----------
 # Processing node all_in, type UNION
 # COLUMN COUNT: 182
 # Original node name Fnl, link all_in
@@ -3927,7 +3862,6 @@ all_in = SEQ_OUT_CONV4.union(Credit_Fclty_ctam_in).union(Credit_Fclty_facm_in).s
 	"FRB_FHLB_ELIG_PLEDGE_CD"
 	)
 
-# COMMAND ----------
 # Processing node out_1, type MERGE
 # COLUMN COUNT: 183
 # Original node name mjr_mod_dt_1, link out_1
@@ -4005,7 +3939,7 @@ out_1 = all_in.join(acct, [acct.ACCT_ID == all_in.ACCT_ID, acct.AS_OF_DT == all_
 	all_in.SHRD_NTNL_CREDIT_IND.alias('SHRD_NTNL_CREDIT_IND'),
 	all_in.LN_PROG_CD.alias('LN_PROG_CD'),
 	all_in.SYNDICATED_IND.alias('SYNDICATED_IND'),
-	all_in.ENTPRS_LEVERAGE_LEND_CD.alias('ENTPRS_LEVERAGE_LEND_CD'),
+	all_in.ENTPRS_LEVERAGE_lengthD_CD.alias('ENTPRS_LEVERAGE_lengthD_CD'),
 	all_in.TAX_FREE_IND.alias('TAX_FREE_IND'),
 	all_in.CMMT_DRAW_IND.alias('CMMT_DRAW_IND'),
 	all_in.CMMT_OWN_PCT.alias('CMMT_OWN_PCT'),
@@ -4087,8 +4021,8 @@ out_1 = all_in.join(acct, [acct.ACCT_ID == all_in.ACCT_ID, acct.AS_OF_DT == all_
 	all_in.REG_AT_RISK_IND.alias('REG_AT_RISK_IND'),
 	all_in.INT_RATE_CLNG_INITL_PRD_PCT.alias('INT_RATE_CLNG_INITL_PRD_PCT'),
 	all_in.LN_UNUSD_AMT_FEE_RATE.alias('LN_UNUSD_AMT_FEE_RATE'),
-	all_in.LEND_ARRANGEMENT_CD.alias('LEND_ARRANGEMENT_CD'),
-	all_in.LEND_ARRANGEMENT_DESC.alias('LEND_ARRANGEMENT_DESC'),
+	all_in.lengthD_ARRANGEMENT_CD.alias('lengthD_ARRANGEMENT_CD'),
+	all_in.lengthD_ARRANGEMENT_DESC.alias('lengthD_ARRANGEMENT_DESC'),
 	all_in.LEASE_RISK_MGMT_CC_NBR.alias('LEASE_RISK_MGMT_CC_NBR'),
 	all_in.MUNI_RISK_WT_PCT.alias('MUNI_RISK_WT_PCT'),
 	all_in.PR_APPL_CD.alias('PR_APPL_CD'),
@@ -4118,7 +4052,6 @@ out_1 = all_in.join(acct, [acct.ACCT_ID == all_in.ACCT_ID, acct.AS_OF_DT == all_
 	all_in.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node out_2, type MERGE
 # COLUMN COUNT: 184
 # Original node name mjr_mod_dt_2, link out_2
@@ -4196,7 +4129,7 @@ out_2 = out_1.join(evolv_ext, [evolv_ext.CLIENTINSTRUMENTID == out_1.SRC_ACCT_NB
 	out_1.SHRD_NTNL_CREDIT_IND.alias('SHRD_NTNL_CREDIT_IND'),
 	out_1.LN_PROG_CD.alias('LN_PROG_CD'),
 	out_1.SYNDICATED_IND.alias('SYNDICATED_IND'),
-	out_1.ENTPRS_LEVERAGE_LEND_CD.alias('ENTPRS_LEVERAGE_LEND_CD'),
+	out_1.ENTPRS_LEVERAGE_lengthD_CD.alias('ENTPRS_LEVERAGE_lengthD_CD'),
 	out_1.TAX_FREE_IND.alias('TAX_FREE_IND'),
 	out_1.CMMT_DRAW_IND.alias('CMMT_DRAW_IND'),
 	out_1.CMMT_OWN_PCT.alias('CMMT_OWN_PCT'),
@@ -4278,8 +4211,8 @@ out_2 = out_1.join(evolv_ext, [evolv_ext.CLIENTINSTRUMENTID == out_1.SRC_ACCT_NB
 	out_1.REG_AT_RISK_IND.alias('REG_AT_RISK_IND'),
 	out_1.INT_RATE_CLNG_INITL_PRD_PCT.alias('INT_RATE_CLNG_INITL_PRD_PCT'),
 	out_1.LN_UNUSD_AMT_FEE_RATE.alias('LN_UNUSD_AMT_FEE_RATE'),
-	out_1.LEND_ARRANGEMENT_CD.alias('LEND_ARRANGEMENT_CD'),
-	out_1.LEND_ARRANGEMENT_DESC.alias('LEND_ARRANGEMENT_DESC'),
+	out_1.lengthD_ARRANGEMENT_CD.alias('lengthD_ARRANGEMENT_CD'),
+	out_1.lengthD_ARRANGEMENT_DESC.alias('lengthD_ARRANGEMENT_DESC'),
 	out_1.LEASE_RISK_MGMT_CC_NBR.alias('LEASE_RISK_MGMT_CC_NBR'),
 	out_1.MUNI_RISK_WT_PCT.alias('MUNI_RISK_WT_PCT'),
 	out_1.PR_APPL_CD.alias('PR_APPL_CD'),
@@ -4310,7 +4243,6 @@ out_2 = out_1.join(evolv_ext, [evolv_ext.CLIENTINSTRUMENTID == out_1.SRC_ACCT_NB
 	out_1.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node out_3, type TRANSFORMATION
 # COLUMN COUNT: 183
 # Original node name transformer_dt, link out_3
@@ -4501,7 +4433,6 @@ out_3 = out_2.select(
 	out_2.FRB_FHLB_ELIG_PLEDGE_CD.alias('FRB_FHLB_ELIG_PLEDGE_CD')
 )
 
-# COMMAND ----------
 # Processing node SEQ_OUT1_CONV2, type REPLICATE
 # COLUMN COUNT: 183
 # Original node name CP_CREDIT_FCLTY_BANCS, link SEQ_OUT1_CONV2
@@ -4692,7 +4623,6 @@ SEQ_OUT1_CONV2 = out_3.select(
 	out_3.FRB_FHLB_ELIG_PLEDGE_CD
 )
 
-# COMMAND ----------
 # Processing node SEQ_OUT2_CONV4, type REPLICATE
 # COLUMN COUNT: 183
 # Original node name CP_CREDIT_FCLTY_BANCS, link SEQ_OUT2_CONV4
@@ -4883,18 +4813,14 @@ SEQ_OUT2_CONV4 = out_3.select(
 	out_3.FRB_FHLB_ELIG_PLEDGE_CD
 )
 
-# COMMAND ----------
 # Processing node CREDIT_FCLTY_BANCS_STG, type TARGET
 # COLUMN COUNT: 183
 
 CREDIT_FCLTY_BANCS_STG = SEQ_OUT2_CONV4.select('*')
-spark.sql('drop table if exists CREDIT_FCLTY_BANCS_STG')
-SA_CUSTOMER_DS.write.saveAsTable(CREDIT_FCLTY_BANCS_STG)
+CREDIT_FCLTY_BANCS_STG.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('STG_DIR')}/bancs/credit_fclty_BANCS_{getArgument('DATA_DATE')}_{getArgument('APPL_CD')}.stg')
 
-# COMMAND ----------
 # Processing node CREDIT_FCLTY_BANCS_DS, type TARGET
 # COLUMN COUNT: 183
 
 CREDIT_FCLTY_BANCS_DS = SEQ_OUT1_CONV2.select('*')
-spark.sql('drop table if exists CREDIT_FCLTY_BANCS_DS')
-SA_CUSTOMER_DS.write.saveAsTable(CREDIT_FCLTY_BANCS_DS)
+CREDIT_FCLTY_BANCS_DS.write.format('csv').option('header','false').mode('overwrite').option('sep',',').csv('{getArgument('DS_DIR')}/bancs/credit_fclty_bancs_stg_{getArgument('APPL_CD')}.ds')
