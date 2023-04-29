@@ -6,9 +6,6 @@ from pyspark.sql.functions import *
 from pyspark import SparkContext
 from pyspark.sql.session import SparkSession
 
-sc = SparkContext('local')
-spark = SparkSession(sc)
-
 def convert_encoding(input_str, from_encoding="ISO-8859-1", to_encoding="UTF-8"):
 	return input_str.encode(from_encoding).decode(to_encoding)
 

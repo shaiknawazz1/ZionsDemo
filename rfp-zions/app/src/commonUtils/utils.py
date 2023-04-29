@@ -1,6 +1,8 @@
 from pathlib import Path
 import platform
 import os
+from pathlib import Path
+
 
 # def spark_to_csv(df, file_path):
 #     """ Converts spark dataframe to CSV file """
@@ -10,28 +12,43 @@ import os
 #         for row in df.toLocalIterator():
 #             writer.writerow(row.asDict())
 
-
-def get_input_folder(job_name = None):
+def get_input_folder(job_name=None):
     """return the path for input files to validate data stage job"""
-    sep = ""
-    if platform.system() == 'Windows':
-        sep = "\\"
-    else:
-        sep = "/"
+    global pathSep
     p1 = os.getcwd()
-    if job_name == None or job_name == "":
-        return p1 + sep + "rfp-zions" + sep + "app" + sep + "test-data"
-    return p1 + sep + "rfp-zions" + sep + "app" + sep + "test-data" + sep + job_name + sep
+    if platform.system() == 'Windows':
+        pathSep = "\\"
+        if job_name == None or job_name == "":
+            p1 = p1 + pathSep + "rfp-zions" + pathSep + "app" + pathSep + "test-data"
+        else:
+            p1 =  p1 + pathSep + "rfp-zions" + pathSep + "app" + pathSep + "test-data" + pathSep + job_name
+    else:
+        print("linux path (test data folder) : " + p1)
+        plis = p1.split("/")
+        plis.pop()
+        p1 = "/".join(plis)
+        
+        pathSep = "/"
+        if job_name == None or job_name == "":
+            p1 = p1 + "/test-data/" 
+        else:
+            p1 = p1 + "/test-data/" + job_name + pathSep
+
+    print ("input folder : " + p1)
+    return p1
+
+    
 
 def get_pySpark(job_name ):
     """return the path for input files to validate data stage job"""
     sep = ""
+    p1 = os.getcwd()
     if platform.system() == 'Windows':
         sep = "\\"
+        return p1 + sep + "rfp-zions" + sep + "app" + sep + "src" + sep + "pyspark" + sep + job_name + ".py"
     else:
         sep = "/"
-    p1 = os.getcwd()
-    return p1 + sep + "rfp-zions" + sep + "app" + sep + "src" + sep + "pyspark" + sep + job_name + ".py"
+        return p1 + sep + "pyspark" + sep + job_name + ".py"
 
 def getJobsList():
     rootdir = get_input_folder()

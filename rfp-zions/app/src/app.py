@@ -15,6 +15,7 @@ import requests as rq
 from qautils import CSV_Comparator as csvComp
 from commonUtils import utils 
 
+
 # import pyspark
 # from pyspark.sql import SparkSession
 
@@ -57,14 +58,15 @@ class DSValidator(Resource):
         ds_name = args["dsName"]
         resp = validateDSJob(ds_name)
         #return send_file(resp, attachment_filename='Validations-Reports.zip', as_attachment=True)
-        return send_from_directory(utils.get_input_folder(ds_name), filename= ds_name + "-csv-report.csv", as_attachment=True)
+        print(utils.get_input_folder(ds_name))
+        return send_from_directory(utils.get_input_folder(ds_name), filename= resp, as_attachment=True)
         #return resp, 201
 
 @nsqa.route("/listOfDSJobs")
 class DSJobsList(Resource):
     """List of data stage jobs available for validation"""
     def get(self):
-        """TODO"""
+        """List of data stage jobs deployed and available for validation with pre-generated data"""
         resp = utils.getJobsList()
         jsonResp = {"listOfJobs" : resp}
         return jsonResp, 200
